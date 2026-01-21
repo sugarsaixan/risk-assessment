@@ -43,21 +43,21 @@
 
 **⚠️ CRITICAL**: No user story work can begin until this phase is complete
 
-- [ ] T010 Create SQLAlchemy async engine and session factory in backend/src/core/database.py
-- [ ] T011 Initialize Alembic with async support in backend/alembic/
-- [ ] T012 [P] Create database enum types (ScoringMethod, RespondentKind, OptionType, AssessmentStatus, RiskRating) in backend/src/models/enums.py
-- [ ] T013 [P] Create base SQLAlchemy model with UUID primary key and timestamps in backend/src/models/base.py
-- [ ] T014 Create ApiKey model with key_hash, name, is_active, last_used_at in backend/src/models/api_key.py
-- [ ] T015 Create initial Alembic migration for api_keys table in backend/alembic/versions/
-- [ ] T016 Implement API key authentication dependency using APIKeyHeader and Argon2 verification in backend/src/core/auth.py
-- [ ] T017 [P] Create FastAPI app instance with CORS and error handlers in backend/src/main.py
-- [ ] T018 [P] Configure slowapi rate limiter (30 req/min/IP) for public endpoints in backend/src/core/rate_limit.py
-- [ ] T019 [P] Create S3/MinIO client configuration and upload helper in backend/src/core/storage.py
-- [ ] T020 [P] Create base Pydantic schemas (PaginatedResponse, Error) in backend/src/schemas/common.py
-- [ ] T021 [P] Create CLI command to generate and hash API keys in backend/src/cli.py
-- [ ] T022 [P] Create React app entry point with router setup in frontend/src/main.tsx
-- [ ] T023 [P] Create API client service with axios instance in frontend/src/services/api.ts
-- [ ] T024 [P] Create TypeScript type definitions from API contracts in frontend/src/types/api.ts
+- [x] T010 Create SQLAlchemy async engine and session factory in backend/src/core/database.py
+- [x] T011 Initialize Alembic with async support in backend/alembic/
+- [x] T012 [P] Create database enum types (ScoringMethod, RespondentKind, OptionType, AssessmentStatus, RiskRating) in backend/src/models/enums.py
+- [x] T013 [P] Create base SQLAlchemy model with UUID primary key and timestamps in backend/src/models/base.py
+- [x] T014 Create ApiKey model with key_hash, name, is_active, last_used_at in backend/src/models/api_key.py
+- [x] T015 Create initial Alembic migration for api_keys table in backend/alembic/versions/
+- [x] T016 Implement API key authentication dependency using APIKeyHeader and Argon2 verification in backend/src/core/auth.py
+- [x] T017 [P] Create FastAPI app instance with CORS and error handlers in backend/src/main.py
+- [x] T018 [P] Configure slowapi rate limiter (30 req/min/IP) for public endpoints in backend/src/core/rate_limit.py
+- [x] T019 [P] Create S3/MinIO client configuration and upload helper in backend/src/core/storage.py
+- [x] T020 [P] Create base Pydantic schemas (PaginatedResponse, Error) in backend/src/schemas/common.py
+- [x] T021 [P] Create CLI command to generate and hash API keys in backend/src/cli.py
+- [x] T022 [P] Create React app entry point with router setup in frontend/src/main.tsx
+- [x] T023 [P] Create API client service with axios instance in frontend/src/services/api.ts
+- [x] T024 [P] Create TypeScript type definitions from API contracts in frontend/src/types/api.ts
 
 **Checkpoint**: Foundation ready - database connected, auth working, storage configured
 
@@ -73,44 +73,44 @@
 
 #### Models
 
-- [ ] T025 [P] [US1] Create QuestionnaireType model (name, scoring_method, thresholds, weight, is_active) in backend/src/models/questionnaire_type.py
-- [ ] T026 [P] [US1] Create Question model (type_id, text, display_order, weight, is_critical, is_active) in backend/src/models/question.py
-- [ ] T027 [P] [US1] Create QuestionOption model (question_id, option_type, score, require_comment, require_image, comment_min_len, max_images, image_max_mb) in backend/src/models/question_option.py
-- [ ] T028 [P] [US1] Create Respondent model (kind, name, registration_no) in backend/src/models/respondent.py
-- [ ] T029 [P] [US1] Create Assessment model (respondent_id, token_hash, selected_type_ids, questions_snapshot, expires_at, status, completed_at) in backend/src/models/assessment.py
-- [ ] T030 [US1] Create Alembic migration for questionnaire_types, questions, question_options, respondents, assessments tables in backend/alembic/versions/
-- [ ] T031 [US1] Export all models in backend/src/models/__init__.py
+- [x] T025 [P] [US1] Create QuestionnaireType model (name, scoring_method, thresholds, weight, is_active) in backend/src/models/questionnaire_type.py
+- [x] T026 [P] [US1] Create Question model (type_id, text, display_order, weight, is_critical, is_active) in backend/src/models/question.py
+- [x] T027 [P] [US1] Create QuestionOption model (question_id, option_type, score, require_comment, require_image, comment_min_len, max_images, image_max_mb) in backend/src/models/question_option.py
+- [x] T028 [P] [US1] Create Respondent model (kind, name, registration_no) in backend/src/models/respondent.py
+- [x] T029 [P] [US1] Create Assessment model (respondent_id, token_hash, selected_type_ids, questions_snapshot, expires_at, status, completed_at) in backend/src/models/assessment.py
+- [x] T030 [US1] Create Alembic migration for questionnaire_types, questions, question_options, respondents, assessments tables in backend/alembic/versions/
+- [x] T031 [US1] Export all models in backend/src/models/__init__.py
 
 #### Schemas
 
-- [ ] T032 [P] [US1] Create QuestionnaireType Pydantic schemas (Create, Update, Response) in backend/src/schemas/questionnaire_type.py
-- [ ] T033 [P] [US1] Create Question Pydantic schemas (Create, Update, Response) in backend/src/schemas/question.py
-- [ ] T034 [P] [US1] Create QuestionOption Pydantic schemas (Config, Response) in backend/src/schemas/question_option.py
-- [ ] T035 [P] [US1] Create Respondent Pydantic schemas (Create, Update, Response) in backend/src/schemas/respondent.py
-- [ ] T036 [P] [US1] Create Assessment Pydantic schemas (Create, Created, Response) in backend/src/schemas/assessment.py
+- [x] T032 [P] [US1] Create QuestionnaireType Pydantic schemas (Create, Update, Response) in backend/src/schemas/questionnaire_type.py
+- [x] T033 [P] [US1] Create Question Pydantic schemas (Create, Update, Response) in backend/src/schemas/question.py
+- [x] T034 [P] [US1] Create QuestionOption Pydantic schemas (Config, Response) in backend/src/schemas/question_option.py
+- [x] T035 [P] [US1] Create Respondent Pydantic schemas (Create, Update, Response) in backend/src/schemas/respondent.py
+- [x] T036 [P] [US1] Create Assessment Pydantic schemas (Create, Created, Response) in backend/src/schemas/assessment.py
 
 #### Repositories
 
-- [ ] T037 [P] [US1] Create QuestionnaireTypeRepository with CRUD operations in backend/src/repositories/questionnaire_type.py
-- [ ] T038 [P] [US1] Create QuestionRepository with CRUD and list-by-type operations in backend/src/repositories/question.py
-- [ ] T039 [P] [US1] Create QuestionOptionRepository with set-options operation in backend/src/repositories/question_option.py
-- [ ] T040 [P] [US1] Create RespondentRepository with CRUD and search operations in backend/src/repositories/respondent.py
-- [ ] T041 [P] [US1] Create AssessmentRepository with create and find-by-token operations in backend/src/repositories/assessment.py
+- [x] T037 [P] [US1] Create QuestionnaireTypeRepository with CRUD operations in backend/src/repositories/questionnaire_type.py
+- [x] T038 [P] [US1] Create QuestionRepository with CRUD and list-by-type operations in backend/src/repositories/question.py
+- [x] T039 [P] [US1] Create QuestionOptionRepository with set-options operation in backend/src/repositories/question_option.py
+- [x] T040 [P] [US1] Create RespondentRepository with CRUD and search operations in backend/src/repositories/respondent.py
+- [x] T041 [P] [US1] Create AssessmentRepository with create and find-by-token operations in backend/src/repositories/assessment.py
 
 #### Services
 
-- [ ] T042 [US1] Implement SnapshotService to deep copy questions/options for assessment creation in backend/src/services/snapshot.py
-- [ ] T043 [US1] Implement TokenService to generate secure tokens and SHA-256 hashes in backend/src/services/token.py
-- [ ] T044 [US1] Implement AssessmentService (create assessment with snapshot, generate public URL) in backend/src/services/assessment.py
+- [x] T042 [US1] Implement SnapshotService to deep copy questions/options for assessment creation in backend/src/services/snapshot.py
+- [x] T043 [US1] Implement TokenService to generate secure tokens and SHA-256 hashes in backend/src/services/token.py
+- [x] T044 [US1] Implement AssessmentService (create assessment with snapshot, generate public URL) in backend/src/services/assessment.py
 
 #### API Routes
 
-- [ ] T045 [US1] Create Admin API router structure in backend/src/api/admin/__init__.py
-- [ ] T046 [P] [US1] Implement POST/GET/PATCH /types endpoints in backend/src/api/admin/types.py
-- [ ] T047 [P] [US1] Implement POST/GET/PATCH /questions and PUT /questions/{id}/options endpoints in backend/src/api/admin/questions.py
-- [ ] T048 [P] [US1] Implement POST/GET/PATCH /respondents endpoints in backend/src/api/admin/respondents.py
-- [ ] T049 [US1] Implement POST/GET /assessments endpoints in backend/src/api/admin/assessments.py
-- [ ] T050 [US1] Register all admin routes with auth dependency in backend/src/main.py
+- [x] T045 [US1] Create Admin API router structure in backend/src/api/admin/__init__.py
+- [x] T046 [P] [US1] Implement POST/GET/PATCH /types endpoints in backend/src/api/admin/types.py
+- [x] T047 [P] [US1] Implement POST/GET/PATCH /questions and PUT /questions/{id}/options endpoints in backend/src/api/admin/questions.py
+- [x] T048 [P] [US1] Implement POST/GET/PATCH /respondents endpoints in backend/src/api/admin/respondents.py
+- [x] T049 [US1] Implement POST/GET /assessments endpoints in backend/src/api/admin/assessments.py
+- [x] T050 [US1] Register all admin routes with auth dependency in backend/src/main.py
 
 **Checkpoint**: Admin can configure questionnaire and generate assessment links via API
 
