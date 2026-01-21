@@ -1,0 +1,404 @@
+openapi: 3.1.0
+info:
+  title: Risk Assessment Public API
+  description: Public API for respondents to access and complete assessments
+  version: 1.0.0
+
+servers:
+  - url: /api/public
+    description: Public API base path (rate limited)
+
+components:
+  schemas:
+    OptionType:
+      type: string
+      enum: ['YES', 'NO']
+
+    RiskRating:
+      type: string
+      enum: [LOW, MEDIUM, HIGH]
+
+    QuestionSnapshot:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        text:
+          type: string
+          description: Question text (Mongolian)
+        display_order:
+          type: integer
+        options:
+          type: object
+          properties:
+            'YES':
+              $ref: '#/components/schemas/OptionSnapshot'
+            'NO':
+              $ref: '#/components/schemas/OptionSnapshot'
+
+    OptionSnapshot:
+      type: object
+      properties:
+        score:
+          type: integer
+        require_comment:
+          type: boolean
+        require_image:
+          type: boolean
+        comment_min_len:
+          type: integer
+        max_images:
+          type: integer
+        image_max_mb:
+          type: integer
+
+    TypeSnapshot:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: Type name (Mongolian)
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionSnapshot'
+
+    AssessmentForm:
+      type: object
+      properties:
+        respondent_name:
+          type: string
+          nullable: true
+          description: Respondent name to display
+        types:
+          type: array
+          items:
+            $ref: '#/components/schemas/TypeSnapshot'
+        total_questions:
+          type: integer
+          description: Total number of questions
+        expires_at:
+          type: string
+          format: date-time
+
+    AnswerInput:
+      type: object
+      required: [question_id, selected_option]
+      properties:
+        question_id:
+          type: string
+          format: uuid
+        selected_option:
+          $ref: '#/components/schemas/OptionType'
+        comment:
+          type: string
+          maxLength: 2000
+          nullable: true
+        attachment_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          description: IDs of uploaded attachments
+
+    SubmitRequest:
+      type: object
+      required: [answers]
+      properties:
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerInput'
+
+    TypeResult:
+      type: object
+      properties:
+        type_name:
+          type: string
+          description: Type name (Mongolian)
+        raw_score:
+          type: integer
+        max_score:
+          type: integer
+        percentage:
+          type: number
+          format: float
+        risk_rating:
+          $ref: '#/components/schemas/RiskRating'
+        risk_rating_label:
+          type: string
+          description: Risk rating in Mongolian
+
+    OverallResult:
+      type: object
+      properties:
+        percentage:
+          type: number
+          format: float
+        risk_rating:
+          $ref: '#/components/schemas/RiskRating'
+        risk_rating_label:
+          type: string
+          description: Risk rating in Mongolian
+
+    SubmitResponse:
+      type: object
+      properties:
+        type_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/TypeResult'
+        overall_result:
+          $ref: '#/components/schemas/OverallResult'
+
+    UploadResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        original_name:
+          type: string
+        size_bytes:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        error_code:
+          type: string
+          enum: [EXPIRED, ALREADY_USED, NOT_FOUND, VALIDATION_ERROR, UPLOAD_ERROR, RATE_LIMITED]
+        message:
+          type: string
+          description: Error message in Mongolian
+
+    ValidationError:
+      type: object
+      properties:
+        error_code:
+          type: string
+          enum: [VALIDATION_ERROR]
+        message:
+          type: string
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              question_id:
+                type: string
+                format: uuid
+              field:
+                type: string
+                enum: [selected_option, comment, attachments]
+              message:
+                type: string
+                description: Validation message in Mongolian
+
+paths:
+  /a/{token}:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+          minLength: 32
+        description: One-time access token
+
+    get:
+      summary: Get assessment form
+      operationId: getAssessmentForm
+      description: |
+        Retrieves the assessment form for the given token.
+        Returns the snapshotted questions and respondent context.
+      responses:
+        '200':
+          description: Assessment form data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentForm'
+        '404':
+          description: Token not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: NOT_FOUND
+                message: Линк олдсонгүй.
+        '410':
+          description: Assessment expired or already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                expired:
+                  value:
+                    error_code: EXPIRED
+                    message: Линкний хугацаа дууссан байна.
+                already_used:
+                  value:
+                    error_code: ALREADY_USED
+                    message: Энэ линк аль хэдийн ашиглагдсан байна.
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              example:
+                error_code: RATE_LIMITED
+                message: Хэт олон хүсэлт илгээсэн байна. Түр хүлээнэ үү.
+
+  /a/{token}/upload:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+
+    post:
+      summary: Upload image attachment
+      operationId: uploadAttachment
+      description: |
+        Upload an image for a specific question answer.
+        Images are validated for type (image/*) and size (max 5MB default).
+        Returns attachment ID to include in submit request.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [file, question_id]
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Image file (image/* types only)
+                question_id:
+                  type: string
+                  format: uuid
+                  description: Question this image belongs to
+      responses:
+        '201':
+          description: Image uploaded successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadResponse'
+        '400':
+          description: Invalid file or validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalid_type:
+                  value:
+                    error_code: VALIDATION_ERROR
+                    message: Зөвхөн зураг файл оруулах боломжтой.
+                too_large:
+                  value:
+                    error_code: VALIDATION_ERROR
+                    message: Файлын хэмжээ хэт их байна. Хамгийн ихдээ 5MB.
+                too_many:
+                  value:
+                    error_code: VALIDATION_ERROR
+                    message: Энэ асуултад хамгийн ихдээ 3 зураг хавсаргах боломжтой.
+        '410':
+          description: Assessment expired or already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /a/{token}/submit:
+    parameters:
+      - name: token
+        in: path
+        required: true
+        schema:
+          type: string
+
+    post:
+      summary: Submit assessment answers
+      operationId: submitAssessment
+      description: |
+        Submits all answers for the assessment.
+        Validates all required fields (options, comments, images).
+        Calculates scores and returns results.
+        Marks the assessment as completed (one-time use).
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitRequest'
+      responses:
+        '200':
+          description: Assessment submitted successfully, returns results
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitResponse'
+              example:
+                type_results:
+                  - type_name: Санхүүгийн эрсдэл
+                    raw_score: 45
+                    max_score: 60
+                    percentage: 75.0
+                    risk_rating: MEDIUM
+                    risk_rating_label: Дунд эрсдэл
+                  - type_name: Үйл ажиллагааны эрсдэл
+                    raw_score: 80
+                    max_score: 100
+                    percentage: 80.0
+                    risk_rating: LOW
+                    risk_rating_label: Бага эрсдэл
+                overall_result:
+                  percentage: 77.5
+                  risk_rating: MEDIUM
+                  risk_rating_label: Дунд эрсдэл
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ValidationError'
+              example:
+                error_code: VALIDATION_ERROR
+                message: Бүх талбарыг бөглөнө үү.
+                details:
+                  - question_id: 550e8400-e29b-41d4-a716-446655440000
+                    field: comment
+                    message: Тайлбар заавал бөглөх шаардлагатай. Хамгийн багадаа 50 тэмдэгт.
+                  - question_id: 550e8400-e29b-41d4-a716-446655440001
+                    field: attachments
+                    message: Зураг хавсаргах шаардлагатай.
+        '410':
+          description: Assessment expired or already used
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'

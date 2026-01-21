@@ -1,0 +1,952 @@
+openapi: 3.1.0
+info:
+  title: Risk Assessment Admin API
+  description: Admin API for configuring questionnaire types, questions, respondents, and assessments
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: /api/admin
+    description: Admin API base path
+
+security:
+  - ApiKeyAuth: []
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for admin authentication
+
+  schemas:
+    # Enums
+    ScoringMethod:
+      type: string
+      enum: [SUM]
+      default: SUM
+
+    RespondentKind:
+      type: string
+      enum: [ORG, PERSON]
+
+    OptionType:
+      type: string
+      enum: ['YES', 'NO']
+
+    AssessmentStatus:
+      type: string
+      enum: [PENDING, COMPLETED, EXPIRED]
+
+    RiskRating:
+      type: string
+      enum: [LOW, MEDIUM, HIGH]
+
+    # Request/Response Schemas
+    QuestionnaireTypeCreate:
+      type: object
+      required: [name]
+      properties:
+        name:
+          type: string
+          maxLength: 200
+          description: Type name (Mongolian)
+        scoring_method:
+          $ref: '#/components/schemas/ScoringMethod'
+        threshold_high:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 80
+          description: Percentage threshold for low risk
+        threshold_medium:
+          type: integer
+          minimum: 0
+          maximum: 100
+          default: 50
+          description: Percentage threshold for medium risk
+        weight:
+          type: number
+          format: float
+          minimum: 0.01
+          default: 1.0
+          description: Weight for overall score calculation
+
+    QuestionnaireTypeUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        threshold_high:
+          type: integer
+          minimum: 0
+          maximum: 100
+        threshold_medium:
+          type: integer
+          minimum: 0
+          maximum: 100
+        weight:
+          type: number
+          format: float
+          minimum: 0.01
+        is_active:
+          type: boolean
+
+    QuestionnaireType:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        scoring_method:
+          $ref: '#/components/schemas/ScoringMethod'
+        threshold_high:
+          type: integer
+        threshold_medium:
+          type: integer
+        weight:
+          type: number
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    QuestionCreate:
+      type: object
+      required: [type_id, text]
+      properties:
+        type_id:
+          type: string
+          format: uuid
+        text:
+          type: string
+          maxLength: 2000
+          description: Question text (Mongolian)
+        display_order:
+          type: integer
+          minimum: 0
+          default: 0
+        weight:
+          type: number
+          format: float
+          minimum: 0
+          default: 1.0
+        is_critical:
+          type: boolean
+          default: false
+
+    QuestionUpdate:
+      type: object
+      properties:
+        text:
+          type: string
+          maxLength: 2000
+        display_order:
+          type: integer
+          minimum: 0
+        weight:
+          type: number
+          format: float
+          minimum: 0
+        is_critical:
+          type: boolean
+        is_active:
+          type: boolean
+
+    Question:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type_id:
+          type: string
+          format: uuid
+        text:
+          type: string
+        display_order:
+          type: integer
+        weight:
+          type: number
+        is_critical:
+          type: boolean
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionOption'
+
+    QuestionOptionConfig:
+      type: object
+      required: [option_type, score]
+      properties:
+        option_type:
+          $ref: '#/components/schemas/OptionType'
+        score:
+          type: integer
+          minimum: 0
+          description: Points awarded for this option
+        require_comment:
+          type: boolean
+          default: false
+        require_image:
+          type: boolean
+          default: false
+        comment_min_len:
+          type: integer
+          minimum: 0
+          maximum: 2000
+          default: 0
+        max_images:
+          type: integer
+          minimum: 1
+          maximum: 10
+          default: 3
+        image_max_mb:
+          type: integer
+          minimum: 1
+          maximum: 20
+          default: 5
+
+    QuestionOption:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        question_id:
+          type: string
+          format: uuid
+        option_type:
+          $ref: '#/components/schemas/OptionType'
+        score:
+          type: integer
+        require_comment:
+          type: boolean
+        require_image:
+          type: boolean
+        comment_min_len:
+          type: integer
+        max_images:
+          type: integer
+        image_max_mb:
+          type: integer
+
+    RespondentCreate:
+      type: object
+      required: [kind, name]
+      properties:
+        kind:
+          $ref: '#/components/schemas/RespondentKind'
+        name:
+          type: string
+          maxLength: 300
+        registration_no:
+          type: string
+          maxLength: 50
+          description: Organization registration or person ID
+
+    RespondentUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 300
+        registration_no:
+          type: string
+          maxLength: 50
+
+    Respondent:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        kind:
+          $ref: '#/components/schemas/RespondentKind'
+        name:
+          type: string
+        registration_no:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    AssessmentCreate:
+      type: object
+      required: [respondent_id, type_ids]
+      properties:
+        respondent_id:
+          type: string
+          format: uuid
+        type_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          description: Questionnaire type IDs to include
+        expires_at:
+          type: string
+          format: date-time
+          description: Link expiration (default 30 days from now)
+
+    AssessmentCreated:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        public_url:
+          type: string
+          format: uri
+          description: One-time assessment link
+        expires_at:
+          type: string
+          format: date-time
+
+    Assessment:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        respondent_id:
+          type: string
+          format: uuid
+        respondent:
+          $ref: '#/components/schemas/Respondent'
+        selected_type_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        status:
+          $ref: '#/components/schemas/AssessmentStatus'
+        expires_at:
+          type: string
+          format: date-time
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    TypeScore:
+      type: object
+      properties:
+        type_id:
+          type: string
+          format: uuid
+        type_name:
+          type: string
+        raw_score:
+          type: integer
+        max_score:
+          type: integer
+        percentage:
+          type: number
+          format: float
+        risk_rating:
+          $ref: '#/components/schemas/RiskRating'
+
+    OverallScore:
+      type: object
+      properties:
+        percentage:
+          type: number
+          format: float
+        risk_rating:
+          $ref: '#/components/schemas/RiskRating'
+
+    AnswerBreakdown:
+      type: object
+      properties:
+        question_id:
+          type: string
+          format: uuid
+        question_text:
+          type: string
+        selected_option:
+          $ref: '#/components/schemas/OptionType'
+        score_awarded:
+          type: integer
+        comment:
+          type: string
+          nullable: true
+        attachments:
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                type: string
+                format: uuid
+              original_name:
+                type: string
+              storage_key:
+                type: string
+
+    AssessmentResults:
+      type: object
+      properties:
+        assessment_id:
+          type: string
+          format: uuid
+        respondent:
+          $ref: '#/components/schemas/Respondent'
+        status:
+          $ref: '#/components/schemas/AssessmentStatus'
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        type_scores:
+          type: array
+          items:
+            $ref: '#/components/schemas/TypeScore'
+        overall_score:
+          $ref: '#/components/schemas/OverallScore'
+        breakdown:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerBreakdown'
+          description: Only included if breakdown=true query param
+
+    Error:
+      type: object
+      properties:
+        detail:
+          type: string
+          description: Error message
+
+    PaginatedResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items: {}
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+        pages:
+          type: integer
+
+paths:
+  /types:
+    get:
+      summary: List questionnaire types
+      operationId: listTypes
+      tags: [Questionnaire Types]
+      parameters:
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+          description: Filter by active status
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of questionnaire types
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/QuestionnaireType'
+        '401':
+          description: Invalid API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
+    post:
+      summary: Create questionnaire type
+      operationId: createType
+      tags: [Questionnaire Types]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionnaireTypeCreate'
+      responses:
+        '201':
+          description: Type created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionnaireType'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '401':
+          description: Invalid API key
+
+  /types/{type_id}:
+    parameters:
+      - name: type_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get questionnaire type
+      operationId: getType
+      tags: [Questionnaire Types]
+      responses:
+        '200':
+          description: Questionnaire type details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionnaireType'
+        '404':
+          description: Type not found
+
+    patch:
+      summary: Update questionnaire type
+      operationId: updateType
+      tags: [Questionnaire Types]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionnaireTypeUpdate'
+      responses:
+        '200':
+          description: Type updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionnaireType'
+        '400':
+          description: Validation error
+        '404':
+          description: Type not found
+
+  /questions:
+    get:
+      summary: List questions
+      operationId: listQuestions
+      tags: [Questions]
+      parameters:
+        - name: type_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by questionnaire type
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of questions
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Question'
+
+    post:
+      summary: Create question
+      operationId: createQuestion
+      tags: [Questions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionCreate'
+      responses:
+        '201':
+          description: Question created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+        '400':
+          description: Validation error
+        '404':
+          description: Type not found
+
+  /questions/{question_id}:
+    parameters:
+      - name: question_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get question
+      operationId: getQuestion
+      tags: [Questions]
+      responses:
+        '200':
+          description: Question details with options
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+        '404':
+          description: Question not found
+
+    patch:
+      summary: Update question
+      operationId: updateQuestion
+      tags: [Questions]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionUpdate'
+      responses:
+        '200':
+          description: Question updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Question'
+        '404':
+          description: Question not found
+
+  /questions/{question_id}/options:
+    parameters:
+      - name: question_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    put:
+      summary: Set question options (YES/NO configurations)
+      operationId: setQuestionOptions
+      tags: [Questions]
+      description: |
+        Sets both YES and NO option configurations for a question.
+        This replaces any existing options.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [options]
+              properties:
+                options:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/QuestionOptionConfig'
+                  minItems: 2
+                  maxItems: 2
+                  description: Must include exactly one YES and one NO option
+      responses:
+        '200':
+          description: Options set
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/QuestionOption'
+        '400':
+          description: Validation error (must have exactly YES and NO)
+        '404':
+          description: Question not found
+
+  /respondents:
+    get:
+      summary: List respondents
+      operationId: listRespondents
+      tags: [Respondents]
+      parameters:
+        - name: kind
+          in: query
+          schema:
+            $ref: '#/components/schemas/RespondentKind'
+        - name: search
+          in: query
+          schema:
+            type: string
+          description: Search by name
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of respondents
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Respondent'
+
+    post:
+      summary: Create respondent
+      operationId: createRespondent
+      tags: [Respondents]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RespondentCreate'
+      responses:
+        '201':
+          description: Respondent created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Respondent'
+        '400':
+          description: Validation error
+
+  /respondents/{respondent_id}:
+    parameters:
+      - name: respondent_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get respondent
+      operationId: getRespondent
+      tags: [Respondents]
+      responses:
+        '200':
+          description: Respondent details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Respondent'
+        '404':
+          description: Respondent not found
+
+    patch:
+      summary: Update respondent
+      operationId: updateRespondent
+      tags: [Respondents]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RespondentUpdate'
+      responses:
+        '200':
+          description: Respondent updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Respondent'
+        '404':
+          description: Respondent not found
+
+  /assessments:
+    get:
+      summary: List assessments
+      operationId: listAssessments
+      tags: [Assessments]
+      parameters:
+        - name: respondent_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/AssessmentStatus'
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of assessments
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Assessment'
+
+    post:
+      summary: Create assessment and generate one-time link
+      operationId: createAssessment
+      tags: [Assessments]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentCreate'
+      responses:
+        '201':
+          description: Assessment created with public URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentCreated'
+        '400':
+          description: Validation error (invalid type IDs, no active questions)
+        '404':
+          description: Respondent not found
+
+  /assessments/{assessment_id}:
+    parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get assessment details
+      operationId: getAssessment
+      tags: [Assessments]
+      responses:
+        '200':
+          description: Assessment details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Assessment'
+        '404':
+          description: Assessment not found
+
+  /assessments/{assessment_id}/results:
+    parameters:
+      - name: assessment_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get assessment results
+      operationId: getAssessmentResults
+      tags: [Assessments]
+      parameters:
+        - name: breakdown
+          in: query
+          schema:
+            type: boolean
+            default: false
+          description: Include individual answer breakdown
+      responses:
+        '200':
+          description: Assessment results with scores
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentResults'
+        '404':
+          description: Assessment not found
+        '400':
+          description: Assessment not yet completed
