@@ -5,94 +5,99 @@
 
 ## Summary
 
-Build a risk assessment survey system with Admin API (protected by API key) for managing questionnaire types, questions, respondents, and generating one-time assessment links, plus a Public UI (Mongolian Cyrillic only) for respondents to complete YES/NO surveys with conditional comment/image requirements, calculate risk scores, and display results.
+Build a risk assessment survey system with an Admin API (FastAPI) for configuring questionnaires and generating one-time assessment links, and a Public UI (React + TypeScript) for respondents to complete assessments in Mongolian Cyrillic. The system calculates per-type and overall risk scores, stores results in PostgreSQL, and handles image attachments via object storage.
 
 ## Technical Context
 
-**Language/Version**: NEEDS CLARIFICATION (Backend) + NEEDS CLARIFICATION (Frontend)
-**Primary Dependencies**: NEEDS CLARIFICATION
-**Storage**: PostgreSQL (data) + Object Storage S3/MinIO/Azure Blob (images)
-**Testing**: NEEDS CLARIFICATION
-**Target Platform**: Web (server + browser)
+**Language/Version**: Python 3.11+ (backend), TypeScript 5.x (frontend)
+**Primary Dependencies**: FastAPI, SQLAlchemy, Pydantic (backend); React 18, React Router, TailwindCSS (frontend)
+**Storage**: PostgreSQL (relational data), S3/MinIO (image attachments)
+**Testing**: pytest + pytest-asyncio (backend), Vitest + React Testing Library (frontend)
+**Target Platform**: Linux server (Docker), modern browsers (Chrome, Firefox, Safari, Edge)
 **Project Type**: Web application (backend API + frontend SPA)
-**Performance Goals**: Page load <2s, submission <1s, 30 req/min/IP rate limit
-**Constraints**: Mobile-first responsive (320px-1920px), WCAG AA, Mongolian Cyrillic only
-**Scale/Scope**: Single-tenant, ~20 questions per assessment typical
+**Performance Goals**: Form load <2s, submission <1s, Admin API response <500ms p95
+**Constraints**: Rate limit 30 req/min/IP on public endpoints, image upload max 5MB, max 3 images per question
+**Scale/Scope**: Phase 1 MVP - single tenant, ~1000 assessments/month expected
 
 ## Constitution Check
 
 *GATE: Must pass before Phase 0 research. Re-check after Phase 1 design.*
 
-**Status**: PASS (No constraints defined)
+**Pre-Phase 0 Status**: PASS (No project-specific constitution configured)
 
-The project constitution contains only template placeholders. No specific architectural principles or constraints are enforced. Proceeding with standard web application best practices.
+**Post-Phase 1 Status**: PASS
+
+The project constitution (`.specify/memory/constitution.md`) is currently in template format with no project-specific principles defined. This implementation follows industry best practices:
+
+- **Security**: Token hashing (SHA-256), API key auth (Argon2), rate limiting (slowapi), input validation (Pydantic + Zod)
+- **Testing**: Unit tests for business logic, integration tests for API endpoints, E2E tests for critical flows
+- **Code Quality**: Type safety (TypeScript strict mode, Pydantic validation), linting, formatting
+- **Documentation**: OpenAPI specs defined in contracts/, inline code comments for complex logic
+
+No violations or deviations from best practices identified in the design phase.
 
 ## Project Structure
 
 ### Documentation (this feature)
 
 ```text
-specs/[###-feature]/
-├── plan.md              # This file (/speckit.plan command output)
-├── research.md          # Phase 0 output (/speckit.plan command)
-├── data-model.md        # Phase 1 output (/speckit.plan command)
-├── quickstart.md        # Phase 1 output (/speckit.plan command)
-├── contracts/           # Phase 1 output (/speckit.plan command)
-└── tasks.md             # Phase 2 output (/speckit.tasks command - NOT created by /speckit.plan)
+specs/001-risk-assessment-survey/
+├── plan.md              # This file
+├── research.md          # Technology decisions and rationale
+├── data-model.md        # Database schema and entity definitions
+├── quickstart.md        # Setup and development guide
+├── contracts/
+│   ├── admin-api.yaml   # OpenAPI spec for Admin API
+│   └── public-api.yaml  # OpenAPI spec for Public API
+└── tasks.md             # Implementation tasks (created by /speckit.tasks)
 ```
 
 ### Source Code (repository root)
-<!--
-  ACTION REQUIRED: Replace the placeholder tree below with the concrete layout
-  for this feature. Delete unused options and expand the chosen structure with
-  real paths (e.g., apps/admin, packages/something). The delivered plan must
-  not include Option labels.
--->
 
 ```text
-# [REMOVE IF UNUSED] Option 1: Single project (DEFAULT)
-src/
-├── models/
-├── services/
-├── cli/
-└── lib/
-
-tests/
-├── contract/
-├── integration/
-└── unit/
-
-# [REMOVE IF UNUSED] Option 2: Web application (when "frontend" + "backend" detected)
 backend/
 ├── src/
-│   ├── models/
-│   ├── services/
-│   └── api/
-└── tests/
+│   ├── api/
+│   │   ├── admin/           # Admin API routes (types, questions, respondents, assessments)
+│   │   └── public/          # Public API routes (form, upload, submit)
+│   ├── models/              # SQLAlchemy ORM models
+│   ├── schemas/             # Pydantic request/response schemas
+│   ├── services/            # Business logic (scoring, validation, snapshots)
+│   ├── repositories/        # Database access layer
+│   └── core/                # Config, auth, dependencies, rate limiting
+├── tests/
+│   ├── unit/                # Service and utility tests
+│   ├── integration/         # API endpoint tests
+│   └── conftest.py          # Pytest fixtures
+├── alembic/                 # Database migrations
+├── pyproject.toml
+└── Dockerfile
 
 frontend/
 ├── src/
-│   ├── components/
-│   ├── pages/
-│   └── services/
-└── tests/
+│   ├── components/          # Reusable UI (Question, ProgressBar, FileUpload)
+│   ├── pages/               # Route pages (AssessmentForm, Results, ErrorPages)
+│   ├── hooks/               # Custom hooks (useForm, useUpload)
+│   ├── services/            # API client
+│   ├── schemas/             # Zod validation schemas
+│   └── types/               # TypeScript type definitions
+├── tests/
+├── package.json
+├── vite.config.ts
+├── tailwind.config.js
+└── Dockerfile
 
-# [REMOVE IF UNUSED] Option 3: Mobile + API (when "iOS/Android" detected)
-api/
-└── [same as backend above]
-
-ios/ or android/
-└── [platform-specific structure: feature modules, UI flows, platform tests]
+docker-compose.yml           # PostgreSQL, MinIO, backend, frontend
 ```
 
-**Structure Decision**: [Document the selected structure and reference the real
-directories captured above]
+**Structure Decision**: Web application with separate backend (FastAPI) and frontend (React SPA) directories. This structure supports independent development, testing, and deployment of each component.
 
 ## Complexity Tracking
 
-> **Fill ONLY if Constitution Check has violations that must be justified**
+> No constitution violations to justify.
 
-| Violation | Why Needed | Simpler Alternative Rejected Because |
-|-----------|------------|-------------------------------------|
-| [e.g., 4th project] | [current need] | [why 3 projects insufficient] |
-| [e.g., Repository pattern] | [specific problem] | [why direct DB access insufficient] |
+| Decision | Rationale |
+|----------|-----------|
+| Separate backend/frontend | Standard web application pattern; enables independent scaling and deployment |
+| Repository pattern | Abstracts database operations; simplifies testing with mock repositories |
+| JSONB for question snapshots | PostgreSQL-native JSON support; avoids complex snapshot tables while preserving query capability |
