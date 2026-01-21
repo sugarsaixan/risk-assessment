@@ -271,3 +271,14 @@ Test Key
   curl -H "X-API-Key: GTi1ee9_TxmoGw0h1zexB8aB5UH3_CYiemsw8LI-H5c" http://localhost:8000/admin/types      
                                                                          
   Let me know if you see any errors.     
+
+
+
+
+
+  ----
+
+  When to Use Each Command
+Scenario 	Use This Command	Result
+Fresh Database	"alembic upgrade head"	Runs all scripts; creates tables and the version tracking table.
+Existing Database	"alembic stamp head"	Does not run scripts; simply tells Alembic the DB is already at the latest version.
