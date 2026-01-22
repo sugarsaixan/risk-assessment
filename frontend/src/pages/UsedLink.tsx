@@ -17,9 +17,9 @@ export function UsedLink() {
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="surface-card text-center max-w-md p-8">
           {/* Icon */}
-          <div className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-6 border border-[var(--app-border)] bg-[#111113]">
+          <div className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-6 border border-[var(--border)] bg-[var(--surface-elevated)]">
             <svg
-              className="w-10 h-10 text-[var(--app-accent)]"
+              className="w-10 h-10 text-[var(--primary)]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"

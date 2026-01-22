@@ -46,7 +46,7 @@ export function CommentField({
   const getCounterColor = () => {
     if (isOverLimit) return "text-red-400";
     if (currentLength > maxLength * 0.9) return "text-amber-400";
-    return "text-[var(--app-muted)]";
+    return "text-[var(--muted-foreground)]";
   };
 
   return (

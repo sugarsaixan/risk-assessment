@@ -14,7 +14,6 @@
   },
   "dependencies": {
     "@fontsource/inter": "^5.2.8",
-    "@fontsource/noto-sans": "^5.0.20",
     "@hookform/resolvers": "^3.3.4",
     "axios": "^1.6.7",
     "react": "^18.3.1",
