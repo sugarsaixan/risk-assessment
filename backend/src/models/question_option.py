@@ -3,7 +3,7 @@
 import uuid
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, ForeignKey, Integer, UniqueConstraint
+from sqlalchemy import Boolean, CheckConstraint, Enum as SAEnum, ForeignKey, Integer, UniqueConstraint
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -53,6 +53,7 @@ class QuestionOption(BaseModel):
         index=True,
     )
     option_type: Mapped[OptionType] = mapped_column(
+        SAEnum(OptionType, name="option_type"),
         nullable=False,
         comment="YES or NO",
     )

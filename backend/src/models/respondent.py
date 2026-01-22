@@ -2,7 +2,7 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import String
+from sqlalchemy import Enum as SAEnum, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import BaseModelWithTimestamps
@@ -24,6 +24,7 @@ class Respondent(BaseModelWithTimestamps):
     __tablename__ = "respondents"
 
     kind: Mapped[RespondentKind] = mapped_column(
+        SAEnum(RespondentKind, name="respondent_kind"),
         nullable=False,
         index=True,
         comment="ORG or PERSON",

@@ -3,7 +3,14 @@
 import uuid
 from decimal import Decimal
 
-from sqlalchemy import CheckConstraint, ForeignKey, Integer, Numeric, UniqueConstraint
+from sqlalchemy import (
+    CheckConstraint,
+    Enum as SAEnum,
+    ForeignKey,
+    Integer,
+    Numeric,
+    UniqueConstraint,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -61,6 +68,7 @@ class AssessmentScore(BaseModel):
         comment="Score percentage",
     )
     risk_rating: Mapped[RiskRating] = mapped_column(
+        SAEnum(RiskRating, name="risk_rating"),
         nullable=False,
         comment="LOW/MEDIUM/HIGH",
     )

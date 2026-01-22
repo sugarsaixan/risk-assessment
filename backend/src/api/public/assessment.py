@@ -85,8 +85,7 @@ async def get_assessment_form(
             ).model_dump(),
         )
 
-    # Get respondent name
-    respondent = assessment.respondent
+    # Load respondent in async-safe way before access.
     await session.refresh(assessment, ["respondent"])
 
     return AssessmentFormResponse(
