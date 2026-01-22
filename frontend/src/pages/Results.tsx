@@ -22,7 +22,7 @@ export function Results() {
   if (!results) {
     // Could redirect to form, but for now show error
     return (
-      <div className="min-h-screen app-content flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4">
         <div className="surface-card p-8 text-center max-w-md">
           <p className="label-muted mb-4">
             {MN.errors.notFound.message}
@@ -41,14 +41,14 @@ export function Results() {
   const { type_results, overall_result } = results;
 
   return (
-    <div className="min-h-screen app-content py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
       <div className="container-app">
         {/* Header */}
         <div className="surface-card p-6 sm:p-8 mb-8">
           <div className="flex justify-between items-start gap-4">
             <div>
               <div className="pill mb-3">{MN.results.title}</div>
-              <h1 className="text-2xl sm:text-3xl font-bold font-display">
+              <h1 className="text-2xl sm:text-3xl font-semibold">
                 {MN.results.title}
               </h1>
               <p className="mt-2 text-sm label-muted">
@@ -72,7 +72,7 @@ export function Results() {
         {/* Type Results */}
         {type_results.length > 0 && (
           <div>
-            <h2 className="text-lg font-semibold font-display mb-4">
+            <h2 className="text-lg font-medium mb-4">
               {MN.results.typeResults}
             </h2>
 
@@ -123,10 +123,10 @@ export function Results() {
               <span
                 className={`font-medium ${
                   overall_result.risk_rating === "LOW"
-                    ? "text-emerald-600"
+                    ? "text-green-400"
                     : overall_result.risk_rating === "MEDIUM"
-                    ? "text-amber-600"
-                    : "text-red-600"
+                    ? "text-amber-400"
+                    : "text-red-400"
                 }`}
               >
                 {MN.riskRating[overall_result.risk_rating]}

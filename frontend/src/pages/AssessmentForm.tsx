@@ -215,7 +215,7 @@ export function AssessmentForm() {
   // Loading state
   if (state.status === "loading") {
     return (
-      <div className="min-h-screen app-content flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4">
         <div className="surface-card p-8 text-center">
           <div className="spinner spinner-lg mx-auto mb-4" />
           <p className="label-muted">{MN.loading}</p>
@@ -227,7 +227,7 @@ export function AssessmentForm() {
   // Error state (should redirect, but fallback)
   if (state.status === "error") {
     return (
-      <div className="min-h-screen app-content flex items-center justify-center px-4">
+      <div className="min-h-screen flex items-center justify-center px-4">
         <div className="surface-card p-8 text-center">
           <p className="text-red-600">{state.message}</p>
         </div>
@@ -238,31 +238,24 @@ export function AssessmentForm() {
   const { data: form } = state;
 
   return (
-    <div className="min-h-screen app-content py-8 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
       <div className="container-app">
         {/* Header */}
         <div className="surface-card p-6 sm:p-8 mb-8">
-          <div className="flex justify-between items-start gap-4">
+          <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="pill pill-ghost mb-3">{MN.assessment.title}</div>
-              <h1 className="text-2xl sm:text-3xl font-bold font-display">
+              <div className="pill mb-3">{MN.assessment.title}</div>
+              <h1 className="text-2xl sm:text-3xl font-semibold">
                 {MN.assessment.title}
               </h1>
-              <p className="mt-2 text-sm label-muted">
-                {form.respondent_name}
-              </p>
+              <p className="mt-2 text-sm label-muted">{form.respondent_name}</p>
             </div>
             <ThemeToggle />
           </div>
 
           <div className="divider-line my-6" />
 
-          {/* Progress bar */}
-          <ProgressBar
-            current={answeredCount}
-            total={totalQuestions}
-            className="mt-4"
-          />
+          <ProgressBar current={answeredCount} total={totalQuestions} />
         </div>
 
         {/* Form */}
@@ -271,8 +264,8 @@ export function AssessmentForm() {
           {form.types.map((type) => (
             <div key={type.id} className="space-y-6">
               {/* Type header */}
-              <div className="surface-panel px-4 py-3">
-                <h2 className="text-base sm:text-lg font-semibold font-display">
+              <div className="surface-panel">
+                <h2 className="text-base sm:text-lg font-medium">
                   {type.name}
                 </h2>
               </div>
@@ -354,7 +347,7 @@ export function AssessmentForm() {
 
           {/* Submit error */}
           {submitError && (
-            <div className="surface-card border border-red-200 p-4">
+            <div className="surface-card border border-red-500/40 p-4">
               <p className="text-red-600">{submitError}</p>
             </div>
           )}

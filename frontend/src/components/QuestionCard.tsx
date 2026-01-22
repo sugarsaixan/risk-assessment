@@ -60,10 +60,10 @@ export function QuestionCard({
     >
       {/* Question number and text */}
       <div className="mb-6">
-        <span className="pill mb-3">
+        <span className="inline-flex items-center justify-center w-7 h-7 text-xs font-medium rounded-full border border-[var(--app-border)] bg-[#111113] text-[var(--app-muted)] mb-3">
           {questionNumber}
         </span>
-        <p className="text-lg text-[var(--app-ink)]">{text}</p>
+        <p className="text-base text-[var(--app-ink)]">{text}</p>
       </div>
 
       {/* YES/NO buttons */}

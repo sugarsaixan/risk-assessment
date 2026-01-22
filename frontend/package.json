@@ -13,8 +13,7 @@
     "test:coverage": "vitest --coverage"
   },
   "dependencies": {
-    "@fontsource/ibm-plex-sans": "^5.2.8",
-    "@fontsource/ibm-plex-serif": "^5.2.7",
+    "@fontsource/inter": "^5.2.8",
     "@fontsource/noto-sans": "^5.0.20",
     "@hookform/resolvers": "^3.3.4",
     "axios": "^1.6.7",

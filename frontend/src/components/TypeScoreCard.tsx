@@ -33,26 +33,23 @@ export function TypeScoreCard({
       case "LOW":
         return {
           label: MN.results.lowRisk,
-          tint: "rgba(31, 127, 114, 0.12)",
-          textColor: "text-emerald-700",
-          borderColor: "rgba(31, 127, 114, 0.35)",
-          progressColor: "bg-emerald-500",
+          textColor: "text-green-400",
+          borderColor: "rgba(34, 197, 94, 0.4)",
+          progressColor: "bg-green-500",
         };
       case "MEDIUM":
         return {
           label: MN.results.mediumRisk,
-          tint: "rgba(200, 148, 47, 0.12)",
-          textColor: "text-amber-700",
-          borderColor: "rgba(200, 148, 47, 0.35)",
+          textColor: "text-amber-400",
+          borderColor: "rgba(245, 158, 11, 0.4)",
           progressColor: "bg-amber-500",
         };
       case "HIGH":
         return {
           label: MN.results.highRisk,
-          tint: "rgba(208, 97, 56, 0.12)",
-          textColor: "text-orange-700",
-          borderColor: "rgba(208, 97, 56, 0.35)",
-          progressColor: "bg-orange-500",
+          textColor: "text-red-400",
+          borderColor: "rgba(239, 68, 68, 0.4)",
+          progressColor: "bg-red-500",
         };
     }
   };
@@ -61,14 +58,11 @@ export function TypeScoreCard({
 
   return (
     <div
-      className={`surface-card p-4 border-l-4 ${className}`}
-      style={{
-        borderColor: config.borderColor,
-        borderLeftColor: config.borderColor,
-      }}
+      className={`surface-card p-4 border border-[var(--app-border)] border-l-4 ${className}`}
+      style={{ borderLeftColor: config.borderColor }}
     >
       {/* Type name */}
-      <h3 className="font-medium mb-3">{typeName}</h3>
+      <h3 className="font-medium mb-3 text-[var(--app-ink)]">{typeName}</h3>
 
       {/* Score display */}
       <div className="flex items-end justify-between mb-3">
@@ -78,7 +72,7 @@ export function TypeScoreCard({
           </span>
           <span className="label-muted ml-1">/ {maxScore}</span>
         </div>
-        <span className="text-xl font-semibold">
+        <span className="text-xl font-semibold text-[var(--app-ink)]">
           {percentage.toFixed(1)}%
         </span>
       </div>
@@ -97,8 +91,8 @@ export function TypeScoreCard({
           {MN.results.riskLevel}:
         </span>
         <span
-          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${config.textColor}`}
-          style={{ background: config.tint }}
+          className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium border ${config.textColor}`}
+          style={{ borderColor: config.borderColor }}
         >
           {config.label}
         </span>
