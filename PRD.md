@@ -211,3 +211,74 @@ Got it — **for now Admin is API-only**, and the **Public Form UI** is the only
 * [ ] Type score + overall score computed and stored
 * [ ] Used/expired link behavior correct
 * [ ] Attachments saved and linked to answers
+
+
+
+---
+T016
+cd backend                                                             
+alembic upgrade head 
+
+Phase 2: Foundational is now COMPLETE ✓                                
+                                                                         
+  To use CLI:                                                            
+  cd backend                                                             
+  python -m src.cli create-key "My Admin Key"                            
+  python -m src.cli list-keys                                            
+                                                                         
+  To run backend:                                                        
+  cd backend                                                             
+  uvicorn src.main:app --reload                                          
+                                                                         
+  Let me know if you see any errors.
+
+
+
+  ---
+   /speckit.implement T017 - T024, do not check syntax or install         
+  dependencies just give me a instruction todo, i will let you know if   
+  there is error. apply this to following tasks 
+
+
+  ---
+T025 - T031
+    To run migrations:                                                     
+  cd backend                                                             
+  alembic upgrade head                                                   
+                                                                         
+  Let me know if you see any errors.        
+
+
+
+
+  ---- 
+Test Key
+  GTi1ee9_TxmoGw0h1zexB8aB5UH3_CYiemsw8LI-H5c
+
+
+
+    All admin endpoints require authentication via CurrentApiKey dependency
+   (X-API-Key header).                                                   
+                                                                         
+  To test the API:                                                       
+  cd backend                                                             
+  uvicorn src.main:app --reload                                          
+                                                                         
+  # Create an API key first                                              
+  python -m src.cli create-key "Test Key"                                
+                                                                         
+  # Then use the key in requests                                         
+  curl -H "X-API-Key: GTi1ee9_TxmoGw0h1zexB8aB5UH3_CYiemsw8LI-H5c" http://localhost:8000/admin/types      
+                                                                         
+  Let me know if you see any errors.     
+
+
+
+
+
+  ----
+
+  When to Use Each Command
+Scenario 	Use This Command	Result
+Fresh Database	"alembic upgrade head"	Runs all scripts; creates tables and the version tracking table.
+Existing Database	"alembic stamp head"	Does not run scripts; simply tells Alembic the DB is already at the latest version.
