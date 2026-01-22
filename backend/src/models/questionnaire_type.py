@@ -3,7 +3,7 @@
 from decimal import Decimal
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Boolean, CheckConstraint, Integer, Numeric, String
+from sqlalchemy import Boolean, CheckConstraint, Enum as SAEnum, Integer, Numeric, String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import BaseModelWithTimestamps
@@ -37,6 +37,7 @@ class QuestionnaireType(BaseModelWithTimestamps):
         comment="Type name (Mongolian)",
     )
     scoring_method: Mapped[ScoringMethod] = mapped_column(
+        SAEnum(ScoringMethod, name="scoring_method"),
         nullable=False,
         default=ScoringMethod.SUM,
         comment="Score calculation method",

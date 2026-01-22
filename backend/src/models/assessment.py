@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import DateTime, ForeignKey, String, func
+from sqlalchemy import DateTime, Enum as SAEnum, ForeignKey, String, func
 from sqlalchemy.dialects.postgresql import ARRAY, JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -60,6 +60,7 @@ class Assessment(BaseModel):
         comment="Link expiration time",
     )
     status: Mapped[AssessmentStatus] = mapped_column(
+        SAEnum(AssessmentStatus, name="assessment_status"),
         nullable=False,
         default=AssessmentStatus.PENDING,
         index=True,

@@ -15,7 +15,9 @@ from src.schemas.assessment import (
     AssessmentResponse,
 )
 from src.schemas.common import PaginatedResponse
+from src.schemas.results import AssessmentResultsResponse
 from src.services.assessment import AssessmentService
+from src.services.results import ResultsService
 
 router = APIRouter(prefix="/assessments", tags=["assessments"])
 
@@ -104,3 +106,38 @@ async def get_assessment(
         )
 
     return AssessmentResponse.model_validate(assessment)
+
+
+@router.get(
+    "/{assessment_id}/results",
+    response_model=AssessmentResultsResponse,
+    summary="Get assessment results",
+)
+async def get_assessment_results(
+    assessment_id: UUID,
+    _api_key: CurrentApiKey,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    breakdown: bool = Query(False, description="Include individual answer breakdown"),
+) -> AssessmentResultsResponse:
+    """Get assessment results with scores and optional answer breakdown.
+
+    Returns per-type scores, overall score, and optionally detailed answer breakdown
+    including comments and attachment counts.
+
+    Args:
+        assessment_id: Assessment UUID.
+        breakdown: If true, includes individual answer details.
+
+    Returns:
+        AssessmentResultsResponse with scores and optional breakdown.
+    """
+    service = ResultsService(session)
+    results = await service.get_results(assessment_id, include_breakdown=breakdown)
+
+    if results is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Assessment not found",
+        )
+
+    return results

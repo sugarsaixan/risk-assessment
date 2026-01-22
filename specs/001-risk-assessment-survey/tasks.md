@@ -126,69 +126,69 @@
 
 #### Models
 
-- [ ] T051 [P] [US2] Create Answer model (assessment_id, question_id, selected_option, comment, score_awarded) in backend/src/models/answer.py
-- [ ] T052 [P] [US2] Create Attachment model (answer_id, storage_key, original_name, size_bytes, mime_type) in backend/src/models/attachment.py
-- [ ] T053 [P] [US2] Create AssessmentScore model (assessment_id, type_id, raw_score, max_score, percentage, risk_rating) in backend/src/models/assessment_score.py
-- [ ] T054 [US2] Create Alembic migration for answers, attachments, assessment_scores tables in backend/alembic/versions/
+- [x] T051 [P] [US2] Create Answer model (assessment_id, question_id, selected_option, comment, score_awarded) in backend/src/models/answer.py
+- [x] T052 [P] [US2] Create Attachment model (answer_id, storage_key, original_name, size_bytes, mime_type) in backend/src/models/attachment.py
+- [x] T053 [P] [US2] Create AssessmentScore model (assessment_id, type_id, raw_score, max_score, percentage, risk_rating) in backend/src/models/assessment_score.py
+- [x] T054 [US2] Create Alembic migration for answers, attachments, assessment_scores tables in backend/alembic/versions/
 
 #### Schemas
 
-- [ ] T055 [P] [US2] Create Answer Pydantic schemas (Input, Response) in backend/src/schemas/answer.py
-- [ ] T056 [P] [US2] Create Attachment Pydantic schemas (Upload, Response) in backend/src/schemas/attachment.py
-- [ ] T057 [P] [US2] Create public API schemas (AssessmentForm, SubmitRequest, SubmitResponse, TypeResult, OverallResult, ErrorResponse) in backend/src/schemas/public.py
+- [x] T055 [P] [US2] Create Answer Pydantic schemas (Input, Response) in backend/src/schemas/answer.py
+- [x] T056 [P] [US2] Create Attachment Pydantic schemas (Upload, Response) in backend/src/schemas/attachment.py
+- [x] T057 [P] [US2] Create public API schemas (AssessmentForm, SubmitRequest, SubmitResponse, TypeResult, OverallResult, ErrorResponse) in backend/src/schemas/public.py
 
 #### Services
 
-- [ ] T058 [US2] Implement ScoringService with type score and overall score calculation logic in backend/src/services/scoring.py
-- [ ] T059 [US2] Implement SubmissionService (validate answers, check required fields, save answers, calculate scores) in backend/src/services/submission.py
-- [ ] T060 [US2] Implement UploadService (validate image type/size, upload to S3, create attachment record) in backend/src/services/upload.py
+- [x] T058 [US2] Implement ScoringService with type score and overall score calculation logic in backend/src/services/scoring.py
+- [x] T059 [US2] Implement SubmissionService (validate answers, check required fields, save answers, calculate scores) in backend/src/services/submission.py
+- [x] T060 [US2] Implement UploadService (validate image type/size, upload to S3, create attachment record) in backend/src/services/upload.py
 
 #### API Routes
 
-- [ ] T061 [US2] Create Public API router structure in backend/src/api/public/__init__.py
-- [ ] T062 [US2] Implement GET /a/{token} endpoint (return form data or error status) with rate limiting in backend/src/api/public/assessment.py
-- [ ] T063 [US2] Implement POST /a/{token}/upload endpoint (handle multipart image upload) with rate limiting in backend/src/api/public/assessment.py
-- [ ] T064 [US2] Implement POST /a/{token}/submit endpoint (validate, score, return results) with rate limiting in backend/src/api/public/assessment.py
-- [ ] T065 [US2] Register public routes in backend/src/main.py
+- [x] T061 [US2] Create Public API router structure in backend/src/api/public/__init__.py
+- [x] T062 [US2] Implement GET /a/{token} endpoint (return form data or error status) with rate limiting in backend/src/api/public/assessment.py
+- [x] T063 [US2] Implement POST /a/{token}/upload endpoint (handle multipart image upload) with rate limiting in backend/src/api/public/assessment.py
+- [x] T064 [US2] Implement POST /a/{token}/submit endpoint (validate, score, return results) with rate limiting in backend/src/api/public/assessment.py
+- [x] T065 [US2] Register public routes in backend/src/main.py
 
 ### Frontend Implementation for User Story 2
 
 #### Core Setup
 
-- [ ] T066 [P] [US2] Create Mongolian string constants file in frontend/src/constants/mn.ts
-- [ ] T067 [P] [US2] Create Zod validation schemas for form data in frontend/src/schemas/assessment.ts
+- [x] T066 [P] [US2] Create Mongolian string constants file in frontend/src/constants/mn.ts
+- [x] T067 [P] [US2] Create Zod validation schemas for form data in frontend/src/schemas/assessment.ts
 
 #### Components
 
-- [ ] T068 [P] [US2] Create ProgressBar component showing "X / Y асуулт" in frontend/src/components/ProgressBar.tsx
-- [ ] T069 [P] [US2] Create QuestionCard component with YES/NO buttons ("Тийм" / "Үгүй") in frontend/src/components/QuestionCard.tsx
-- [ ] T070 [P] [US2] Create CommentField component with character counter (max 2000) in frontend/src/components/CommentField.tsx
-- [ ] T071 [P] [US2] Create ImageUpload component with drag-drop, preview, and progress in frontend/src/components/ImageUpload.tsx
-- [ ] T072 [P] [US2] Create TypeScoreCard component for displaying per-type results in frontend/src/components/TypeScoreCard.tsx
-- [ ] T073 [P] [US2] Create OverallScoreCard component for displaying overall result in frontend/src/components/OverallScoreCard.tsx
+- [x] T068 [P] [US2] Create ProgressBar component showing "X / Y асуулт" in frontend/src/components/ProgressBar.tsx
+- [x] T069 [P] [US2] Create QuestionCard component with YES/NO buttons ("Тийм" / "Үгүй") in frontend/src/components/QuestionCard.tsx
+- [x] T070 [P] [US2] Create CommentField component with character counter (max 2000) in frontend/src/components/CommentField.tsx
+- [x] T071 [P] [US2] Create ImageUpload component with drag-drop, preview, and progress in frontend/src/components/ImageUpload.tsx
+- [x] T072 [P] [US2] Create TypeScoreCard component for displaying per-type results in frontend/src/components/TypeScoreCard.tsx
+- [x] T073 [P] [US2] Create OverallScoreCard component for displaying overall result in frontend/src/components/OverallScoreCard.tsx
 
 #### Pages
 
-- [ ] T074 [US2] Create AssessmentForm page with react-hook-form, conditional fields, validation in frontend/src/pages/AssessmentForm.tsx
-- [ ] T075 [US2] Create Results page displaying type scores and overall score with risk ratings in frontend/src/pages/Results.tsx
-- [ ] T076 [P] [US2] Create ExpiredLink page showing "Линкний хугацаа дууссан байна." in frontend/src/pages/ExpiredLink.tsx
-- [ ] T077 [P] [US2] Create UsedLink page showing "Энэ линк аль хэдийн ашиглагдсан байна." in frontend/src/pages/UsedLink.tsx
-- [ ] T078 [P] [US2] Create NotFound page for invalid tokens in frontend/src/pages/NotFound.tsx
+- [x] T074 [US2] Create AssessmentForm page with react-hook-form, conditional fields, validation in frontend/src/pages/AssessmentForm.tsx
+- [x] T075 [US2] Create Results page displaying type scores and overall score with risk ratings in frontend/src/pages/Results.tsx
+- [x] T076 [P] [US2] Create ExpiredLink page showing "Линкний хугацаа дууссан байна." in frontend/src/pages/ExpiredLink.tsx
+- [x] T077 [P] [US2] Create UsedLink page showing "Энэ линк аль хэдийн ашиглагдсан байна." in frontend/src/pages/UsedLink.tsx
+- [x] T078 [P] [US2] Create NotFound page for invalid tokens in frontend/src/pages/NotFound.tsx
 
 #### Hooks and Services
 
-- [ ] T079 [US2] Create useAssessment hook to fetch form data and handle loading/error states in frontend/src/hooks/useAssessment.ts
-- [ ] T080 [US2] Create useUpload hook to handle image upload with progress tracking in frontend/src/hooks/useUpload.ts
-- [ ] T081 [US2] Create assessment API service (getForm, uploadImage, submit) in frontend/src/services/assessment.ts
+- [x] T079 [US2] Create useAssessment hook to fetch form data and handle loading/error states in frontend/src/hooks/useAssessment.ts
+- [x] T080 [US2] Create useUpload hook to handle image upload with progress tracking in frontend/src/hooks/useUpload.ts
+- [x] T081 [US2] Create assessment API service (getForm, uploadImage, submit) in frontend/src/services/assessment.ts
 
 #### Routing
 
-- [ ] T082 [US2] Configure routes for /a/:token (form), /a/:token/results, error pages in frontend/src/App.tsx
+- [x] T082 [US2] Configure routes for /a/:token (form), /a/:token/results, error pages in frontend/src/App.tsx
 
 #### Styling
 
-- [ ] T083 [US2] Apply mobile-first responsive styles to all components in frontend/src/index.css
-- [ ] T084 [US2] Implement dark/light mode toggle with system preference detection in frontend/src/hooks/useTheme.ts
+- [x] T083 [US2] Apply mobile-first responsive styles to all components in frontend/src/index.css
+- [x] T084 [US2] Implement dark/light mode toggle with system preference detection in frontend/src/hooks/useTheme.ts
 
 **Checkpoint**: Full respondent flow works - access link, complete form, see results
 
@@ -202,9 +202,9 @@
 
 ### Implementation for User Story 3
 
-- [ ] T085 [US3] Add list types endpoint with pagination and is_active filter in backend/src/api/admin/types.py
-- [ ] T086 [US3] Add get single type endpoint in backend/src/api/admin/types.py
-- [ ] T087 [US3] Ensure deactivated types are excluded from assessment creation validation in backend/src/services/assessment.py
+- [x] T085 [US3] Add list types endpoint with pagination and is_active filter in backend/src/api/admin/types.py
+- [x] T086 [US3] Add get single type endpoint in backend/src/api/admin/types.py
+- [x] T087 [US3] Ensure deactivated types are excluded from assessment creation validation in backend/src/services/assessment.py
 
 **Checkpoint**: Full questionnaire type management available via API
 
@@ -218,9 +218,9 @@
 
 ### Implementation for User Story 4
 
-- [ ] T088 [US4] Add list questions endpoint with pagination and type_id filter in backend/src/api/admin/questions.py
-- [ ] T089 [US4] Add get single question endpoint including options in backend/src/api/admin/questions.py
-- [ ] T090 [US4] Add validation for option configurations (exactly YES and NO required) in backend/src/schemas/question_option.py
+- [x] T088 [US4] Add list questions endpoint with pagination and type_id filter in backend/src/api/admin/questions.py
+- [x] T089 [US4] Add get single question endpoint including options in backend/src/api/admin/questions.py
+- [x] T090 [US4] Add validation for option configurations (exactly YES and NO required) in backend/src/schemas/question_option.py
 
 **Checkpoint**: Full question and option configuration available via API
 
@@ -234,9 +234,9 @@
 
 ### Implementation for User Story 5
 
-- [ ] T091 [US5] Create AssessmentResults Pydantic schema with TypeScore, OverallScore, AnswerBreakdown in backend/src/schemas/results.py
-- [ ] T092 [US5] Implement ResultsService to format scores and optionally include answer breakdown in backend/src/services/results.py
-- [ ] T093 [US5] Implement GET /assessments/{id}/results endpoint with breakdown query param in backend/src/api/admin/assessments.py
+- [x] T091 [US5] Create AssessmentResults Pydantic schema with TypeScore, OverallScore, AnswerBreakdown in backend/src/schemas/results.py
+- [x] T092 [US5] Implement ResultsService to format scores and optionally include answer breakdown in backend/src/services/results.py
+- [x] T093 [US5] Implement GET /assessments/{id}/results endpoint with breakdown query param in backend/src/api/admin/assessments.py
 
 **Checkpoint**: Full assessment results retrieval available via API
 
@@ -250,9 +250,9 @@
 
 ### Implementation for User Story 6
 
-- [ ] T094 [US6] Add list respondents endpoint with pagination, kind filter, and name search in backend/src/api/admin/respondents.py
-- [ ] T095 [US6] Add get single respondent endpoint in backend/src/api/admin/respondents.py
-- [ ] T096 [US6] Add update respondent endpoint in backend/src/api/admin/respondents.py
+- [x] T094 [US6] Add list respondents endpoint with pagination, kind filter, and name search in backend/src/api/admin/respondents.py
+- [x] T095 [US6] Add get single respondent endpoint in backend/src/api/admin/respondents.py
+- [x] T096 [US6] Add update respondent endpoint in backend/src/api/admin/respondents.py
 
 **Checkpoint**: Full respondent management available via API
 
@@ -262,14 +262,14 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [ ] T097 [P] Add OpenAPI documentation customization (title, description, tags) in backend/src/main.py
-- [ ] T098 [P] Add request logging middleware in backend/src/core/logging.py
-- [ ] T099 [P] Add health check endpoint in backend/src/api/health.py
+- [x] T097 [P] Add OpenAPI documentation customization (title, description, tags) in backend/src/main.py
+- [x] T098 [P] Add request logging middleware in backend/src/core/logging.py
+- [x] T099 [P] Add health check endpoint in backend/src/api/health.py
 - [ ] T100 [P] Create backend Dockerfile with multi-stage build in backend/Dockerfile
 - [ ] T101 [P] Create frontend Dockerfile with nginx in frontend/Dockerfile
 - [ ] T102 Update docker-compose.yml to include backend and frontend services
-- [ ] T103 [P] Add input sanitization for Mongolian text fields in backend/src/core/validators.py
-- [ ] T104 [P] Add WCAG AA contrast verification for UI components
+- [x] T103 [P] Add input sanitization for Mongolian text fields in backend/src/core/validators.py
+- [x] T104 [P] Add WCAG AA contrast verification for UI components in frontend/src/utils/contrast.ts
 - [ ] T105 Run quickstart.md validation - verify all setup steps work
 
 ---
