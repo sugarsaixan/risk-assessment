@@ -44,9 +44,9 @@ export function CommentField({
 
   // Determine counter color
   const getCounterColor = () => {
-    if (isOverLimit) return "text-red-600 dark:text-red-400";
-    if (currentLength > maxLength * 0.9) return "text-yellow-600 dark:text-yellow-400";
-    return "text-gray-500 dark:text-gray-400";
+    if (isOverLimit) return "text-red-400";
+    if (currentLength > maxLength * 0.9) return "text-amber-400";
+    return "text-[var(--app-muted)]";
   };
 
   return (
