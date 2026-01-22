@@ -83,3 +83,5 @@ logs/
 *.key
 secrets/
 credentials.json
+
+demo-ui/*

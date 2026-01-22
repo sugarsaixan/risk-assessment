@@ -241,11 +241,24 @@ export function AssessmentForm() {
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
       <div className="container-app">
         {/* Header */}
-        <div className="surface-card p-6 sm:p-8 mb-8">
+        <div className="surface-card p-6 sm:p-8 mb-6">
           <div className="flex items-start justify-between gap-4">
             <div>
-              <div className="pill mb-3">{MN.assessment.title}</div>
-              <h1 className="text-2xl sm:text-3xl font-semibold">
+              <div className="pill mb-4">
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 3l8 4v5c0 5-3.5 9-8 9s-8-4-8-9V7l8-4z" />
+                </svg>
+                {MN.assessment.title}
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-semibold text-[var(--foreground)]">
                 {MN.assessment.title}
               </h1>
               <p className="mt-2 text-sm label-muted">{form.respondent_name}</p>
@@ -253,8 +266,9 @@ export function AssessmentForm() {
             <ThemeToggle />
           </div>
 
-          <div className="divider-line my-6" />
+        </div>
 
+        <div className="surface-card p-4 mb-8">
           <ProgressBar current={answeredCount} total={totalQuestions} />
         </div>
 
@@ -347,8 +361,8 @@ export function AssessmentForm() {
 
           {/* Submit error */}
           {submitError && (
-            <div className="surface-card border border-red-500/40 p-4">
-              <p className="text-red-600">{submitError}</p>
+            <div className="surface-card border border-[var(--risk-high)]/40 p-4">
+              <p className="text-red-400">{submitError}</p>
             </div>
           )}
 

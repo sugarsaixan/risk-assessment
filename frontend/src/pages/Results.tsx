@@ -47,7 +47,20 @@ export function Results() {
         <div className="surface-card p-6 sm:p-8 mb-8">
           <div className="flex justify-between items-start gap-4">
             <div>
-              <div className="pill mb-3">{MN.results.title}</div>
+              <div className="pill mb-4">
+                <svg
+                  className="h-3.5 w-3.5"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <path d="M12 3l8 4v5c0 5-3.5 9-8 9s-8-4-8-9V7l8-4z" />
+                </svg>
+                {MN.results.title}
+              </div>
               <h1 className="text-2xl sm:text-3xl font-semibold">
                 {MN.results.title}
               </h1>
@@ -92,34 +105,27 @@ export function Results() {
         )}
 
         {/* Summary Section */}
-        <div className="mt-8 surface-card p-6">
-          <h3 className="font-medium mb-4">
-            {MN.results.overall}
-          </h3>
-
-          <div className="space-y-3 text-sm">
-            <div className="flex justify-between">
-              <span className="label-muted">
-                {MN.results.score}
-              </span>
-              <span className="font-medium">
+        <div className="mt-8 surface-card">
+          <div className="border-b border-[var(--border)] p-4">
+            <h3 className="text-base font-medium text-[var(--foreground)]">
+              {MN.results.overall}
+            </h3>
+          </div>
+          <div className="divide-y divide-[var(--border)] text-sm">
+            <div className="flex justify-between p-4">
+              <span className="label-muted">{MN.results.score}</span>
+              <span className="font-medium text-[var(--foreground)]">
                 {overall_result.raw_score} / {overall_result.max_score}
               </span>
             </div>
-
-            <div className="flex justify-between">
-              <span className="label-muted">
-                {MN.results.percentage}
-              </span>
-              <span className="font-medium">
+            <div className="flex justify-between p-4">
+              <span className="label-muted">{MN.results.percentage}</span>
+              <span className="font-medium text-[var(--foreground)]">
                 {overall_result.percentage.toFixed(1)}%
               </span>
             </div>
-
-            <div className="flex justify-between">
-              <span className="label-muted">
-                {MN.results.riskLevel}
-              </span>
+            <div className="flex justify-between p-4">
+              <span className="label-muted">{MN.results.riskLevel}</span>
               <span
                 className={`font-medium ${
                   overall_result.risk_rating === "LOW"

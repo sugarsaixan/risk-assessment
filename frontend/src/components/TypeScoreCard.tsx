@@ -58,21 +58,21 @@ export function TypeScoreCard({
 
   return (
     <div
-      className={`surface-card p-4 border border-[var(--app-border)] border-l-4 ${className}`}
+      className={`surface-card p-4 border border-[var(--border)] border-l-4 ${className}`}
       style={{ borderLeftColor: config.borderColor }}
     >
       {/* Type name */}
-      <h3 className="font-medium mb-3 text-[var(--app-ink)]">{typeName}</h3>
+      <h3 className="text-sm font-medium mb-3 text-[var(--foreground)]">{typeName}</h3>
 
       {/* Score display */}
       <div className="flex items-end justify-between mb-3">
         <div>
-          <span className="text-2xl font-bold">
+          <span className="text-2xl font-bold text-[var(--foreground)]">
             {rawScore}
           </span>
           <span className="label-muted ml-1">/ {maxScore}</span>
         </div>
-        <span className="text-xl font-semibold text-[var(--app-ink)]">
+        <span className="text-lg font-semibold text-[var(--foreground)]">
           {percentage.toFixed(1)}%
         </span>
       </div>
