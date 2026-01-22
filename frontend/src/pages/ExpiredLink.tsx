@@ -7,7 +7,7 @@ import { ThemeToggle } from "../hooks/useTheme";
 
 export function ExpiredLink() {
   return (
-    <div className="min-h-screen app-content flex flex-col">
+    <div className="min-h-screen flex flex-col">
       {/* Header with theme toggle */}
       <div className="absolute top-4 right-4">
         <ThemeToggle />
@@ -17,9 +17,9 @@ export function ExpiredLink() {
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="surface-card text-center max-w-md p-8">
           {/* Icon */}
-          <div className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-6 bg-[rgba(208,97,56,0.14)]">
+          <div className="mx-auto w-20 h-20 rounded-2xl flex items-center justify-center mb-6 border border-[var(--border)] bg-[var(--surface-elevated)]">
             <svg
-              className="w-10 h-10 text-[var(--app-accent)]"
+              className="w-10 h-10 text-[var(--primary)]"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
@@ -34,7 +34,7 @@ export function ExpiredLink() {
           </div>
 
           {/* Title */}
-          <h1 className="text-2xl font-bold font-display mb-3">
+          <h1 className="text-2xl font-semibold mb-3">
             {MN.errors.expired.title}
           </h1>
 

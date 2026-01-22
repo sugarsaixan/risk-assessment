@@ -133,7 +133,7 @@ export function ImageUpload({
             {/* Upload icon */}
             <svg
               className={`mx-auto h-12 w-12 ${
-                isDragActive ? "text-[var(--app-accent-2)]" : "text-[var(--app-muted)]"
+                isDragActive ? "text-[var(--primary)]" : "text-[var(--muted-foreground)]"
               }`}
               stroke="currentColor"
               fill="none"
@@ -150,11 +150,11 @@ export function ImageUpload({
 
             <p className="text-sm label-muted">
               {isDragActive ? (
-                <span className="text-[var(--app-accent-2)] font-medium">{MN.upload.dragDrop}</span>
+                <span className="text-[var(--primary)] font-medium">{MN.upload.dragDrop}</span>
               ) : (
                 <>
                   {MN.upload.dragDrop} {MN.upload.or}{" "}
-                  <span className="text-[var(--app-accent)] font-medium">{MN.upload.browse}</span>
+                  <span className="text-[var(--primary)] font-medium">{MN.upload.browse}</span>
                 </>
               )}
             </p>
@@ -178,7 +178,7 @@ export function ImageUpload({
           {images.map((image) => (
             <div
               key={image.id}
-              className="relative group rounded-xl overflow-hidden border border-[var(--app-border)] bg-[var(--app-surface)]"
+              className="relative group rounded-xl overflow-hidden border border-[var(--border)] bg-[var(--card)]"
             >
               {/* Preview image */}
               {image.preview ? (
@@ -188,7 +188,7 @@ export function ImageUpload({
                   className="w-full h-24 object-cover"
                 />
               ) : (
-                <div className="w-full h-24 flex items-center justify-center text-[var(--app-muted)]">
+                <div className="w-full h-24 flex items-center justify-center text-[var(--muted-foreground)]">
                   <svg className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path
                       strokeLinecap="round"
@@ -242,7 +242,7 @@ export function ImageUpload({
 
       {/* Upload status */}
       {isUploading && (
-        <p className="mt-2 text-sm text-[var(--app-accent)] flex items-center">
+        <p className="mt-2 text-sm text-[var(--primary)] flex items-center">
           <svg className="animate-spin h-4 w-4 mr-2" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
             <path

@@ -38,11 +38,11 @@ function App() {
  */
 function Home() {
   return (
-    <div className="app-content flex items-center justify-center min-h-screen px-4 py-10">
+    <div className="flex items-center justify-center min-h-screen px-4 py-10">
       <div className="surface-card max-w-lg w-full p-8 sm:p-10 text-center">
-        <div className="mx-auto w-16 h-16 rounded-2xl flex items-center justify-center mb-6 bg-[rgba(208,97,56,0.14)]">
+        <div className="mx-auto w-16 h-16 rounded-xl flex items-center justify-center mb-6 border border-[var(--border)] bg-[var(--surface-elevated)]">
           <svg
-            className="w-8 h-8 text-[var(--app-accent)]"
+            className="w-8 h-8 text-[var(--primary)]"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -60,7 +60,7 @@ function Home() {
           Эрсдэлийн үнэлгээ
         </div>
 
-        <h1 className="text-3xl sm:text-4xl font-bold mb-4 font-display">
+        <h1 className="text-3xl sm:text-4xl font-semibold mb-4 text-[var(--foreground)]">
           Эрсдэлийн үнэлгээний систем
         </h1>
 

@@ -55,15 +55,15 @@ export function QuestionCard({
 
   return (
     <div
-      className={`question-card surface-card p-6 ${className}`}
+      className={`question-card surface-card p-5 sm:p-6 ${className}`}
       data-question-id={questionId}
     >
       {/* Question number and text */}
-      <div className="mb-6">
-        <span className="pill mb-3">
+      <div className="mb-5 flex items-start gap-3">
+        <span className="inline-flex items-center justify-center w-7 h-7 text-xs font-medium rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--foreground)]">
           {questionNumber}
         </span>
-        <p className="text-lg text-[var(--app-ink)]">{text}</p>
+        <p className="text-base text-[var(--foreground)] leading-relaxed">{text}</p>
       </div>
 
       {/* YES/NO buttons */}
@@ -79,7 +79,9 @@ export function QuestionCard({
         >
           <span className="block">{MN.options.yes}</span>
           {yesRequirements && (
-            <span className="block text-xs mt-1 opacity-75">({yesRequirements})</span>
+            <span className="block text-xs mt-1 text-[var(--muted-foreground)]">
+              ({yesRequirements})
+            </span>
           )}
         </button>
 
@@ -94,7 +96,9 @@ export function QuestionCard({
         >
           <span className="block">{MN.options.no}</span>
           {noRequirements && (
-            <span className="block text-xs mt-1 opacity-75">({noRequirements})</span>
+            <span className="block text-xs mt-1 text-[var(--muted-foreground)]">
+              ({noRequirements})
+            </span>
           )}
         </button>
       </div>

@@ -20,7 +20,7 @@ export function ProgressBar({ current, total, className = "" }: ProgressBarProps
     <div className={`w-full ${className}`}>
       {/* Progress text */}
       <div className="flex justify-between items-center mb-2">
-        <span className="text-sm font-medium">
+        <span className="text-sm font-medium text-[var(--foreground)]">
           {MN.assessment.questionCount(current, total)}
         </span>
         <span className="text-sm label-muted">{percentage}%</span>
