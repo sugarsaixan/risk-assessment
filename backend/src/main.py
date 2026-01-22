@@ -11,9 +11,11 @@ from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
 from src.api.admin import admin_router
+from src.api.health import router as health_router
 from src.api.public import public_router
 from src.core.config import settings
 from src.core.database import close_db, init_db
+from src.core.logging import RequestLoggingMiddleware, setup_logging
 from src.core.rate_limit import limiter
 
 
@@ -21,6 +23,7 @@ from src.core.rate_limit import limiter
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Application lifespan handler for startup and shutdown events."""
     # Startup
+    setup_logging()
     await init_db()
     yield
     # Shutdown
@@ -30,9 +33,59 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
 app = FastAPI(
     title=settings.app_name,
     version=settings.app_version,
+    description="""
+## Risk Assessment Survey API
+
+API for managing risk assessment questionnaires, respondents, and survey submissions.
+
+### Features
+
+- **Admin API**: Manage questionnaire types, questions, options, respondents, and assessments
+- **Public API**: Respondent-facing endpoints for completing assessments
+
+### Authentication
+
+Admin endpoints require API key authentication via the `X-API-Key` header.
+Public endpoints are rate-limited and accessed via one-time tokens.
+    """,
     debug=settings.debug,
     lifespan=lifespan,
+    openapi_tags=[
+        {
+            "name": "root",
+            "description": "Root and health check endpoints",
+        },
+        {
+            "name": "types",
+            "description": "Questionnaire type management (Admin)",
+        },
+        {
+            "name": "questions",
+            "description": "Question and option management (Admin)",
+        },
+        {
+            "name": "respondents",
+            "description": "Respondent management (Admin)",
+        },
+        {
+            "name": "assessments",
+            "description": "Assessment link creation and results (Admin)",
+        },
+        {
+            "name": "public",
+            "description": "Public assessment submission endpoints",
+        },
+    ],
+    license_info={
+        "name": "Proprietary",
+    },
+    contact={
+        "name": "Risk Assessment Support",
+    },
 )
+
+# Request logging middleware (must be added first to wrap all other middleware)
+app.add_middleware(RequestLoggingMiddleware)
 
 # CORS configuration
 app.add_middleware(
@@ -76,6 +129,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Register routers
+app.include_router(health_router)
 app.include_router(admin_router)
 app.include_router(public_router)
 

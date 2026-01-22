@@ -3,7 +3,16 @@
 import uuid
 from datetime import datetime
 
-from sqlalchemy import CheckConstraint, DateTime, ForeignKey, Integer, Text, UniqueConstraint, func
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Enum as SAEnum,
+    ForeignKey,
+    Integer,
+    Text,
+    UniqueConstraint,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -41,6 +50,7 @@ class Answer(BaseModel):
         comment="Question ID from snapshot",
     )
     selected_option: Mapped[OptionType] = mapped_column(
+        SAEnum(OptionType, name="option_type"),
         nullable=False,
         comment="YES or NO",
     )

@@ -1,0 +1,691 @@
+{
+  "info": {
+    "_postman_id": "risk-assessment-api",
+    "name": "Risk Assessment Survey API",
+    "description": "API collection for the Risk Assessment Survey System.\n\n## Authentication\n\nAdmin endpoints require API key authentication via the `X-API-Key` header.\n\n## Base URL\n\nSet the `base_url` variable to your API server (default: http://localhost:8000).",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "api_key",
+      "value": "your-api-key-here",
+      "type": "string"
+    },
+    {
+      "key": "type_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "question_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "respondent_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "assessment_id",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "assessment_token",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/health",
+              "host": ["{{base_url}}"],
+              "path": ["health"]
+            },
+            "description": "Check application health including database connectivity."
+          }
+        },
+        {
+          "name": "Readiness Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/ready",
+              "host": ["{{base_url}}"],
+              "path": ["ready"]
+            },
+            "description": "Kubernetes-style readiness probe."
+          }
+        },
+        {
+          "name": "Liveness Check",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/live",
+              "host": ["{{base_url}}"],
+              "path": ["live"]
+            },
+            "description": "Kubernetes-style liveness probe."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Questionnaire Types",
+      "item": [
+        {
+          "name": "Create Type",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('type_id', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Санхүүгийн эрсдэл\",\n  \"scoring_method\": \"SUM\",\n  \"threshold_high\": 80,\n  \"threshold_medium\": 50,\n  \"weight\": 1.0\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/types",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "types"]
+            },
+            "description": "Create a new questionnaire type."
+          }
+        },
+        {
+          "name": "List Types",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/types?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "types"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all questionnaire types with pagination."
+          }
+        },
+        {
+          "name": "Get Type",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/types/{{type_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "types", "{{type_id}}"]
+            },
+            "description": "Get a questionnaire type by ID."
+          }
+        },
+        {
+          "name": "Update Type",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Санхүүгийн эрсдэл (шинэчилсэн)\",\n  \"threshold_high\": 85,\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/types/{{type_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "types", "{{type_id}}"]
+            },
+            "description": "Update a questionnaire type."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Questions",
+      "item": [
+        {
+          "name": "Create Question",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('question_id', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"type_id\": \"{{type_id}}\",\n  \"text\": \"Байгууллага санхүүгийн тайлангаа тогтмол хугацаанд гаргадаг уу?\",\n  \"display_order\": 1,\n  \"weight\": 1.0,\n  \"is_critical\": false\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/questions",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "questions"]
+            },
+            "description": "Create a new question for a questionnaire type."
+          }
+        },
+        {
+          "name": "List Questions",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/questions?type_id={{type_id}}&page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "questions"],
+              "query": [
+                {
+                  "key": "type_id",
+                  "value": "{{type_id}}"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                },
+                {
+                  "key": "is_active",
+                  "value": "true",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List questions for a questionnaire type."
+          }
+        },
+        {
+          "name": "Get Question",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/questions/{{question_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "questions", "{{question_id}}"]
+            },
+            "description": "Get a question by ID including its options."
+          }
+        },
+        {
+          "name": "Update Question",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"text\": \"Байгууллага санхүүгийн тайлангаа улирал бүр гаргадаг уу?\",\n  \"is_active\": true\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/questions/{{question_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "questions", "{{question_id}}"]
+            },
+            "description": "Update a question."
+          }
+        },
+        {
+          "name": "Set Question Options",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"yes\": {\n    \"option_type\": \"YES\",\n    \"score\": 10,\n    \"require_comment\": false,\n    \"require_image\": false,\n    \"comment_min_len\": 0,\n    \"max_images\": 3,\n    \"image_max_mb\": 5\n  },\n  \"no\": {\n    \"option_type\": \"NO\",\n    \"score\": 0,\n    \"require_comment\": true,\n    \"require_image\": false,\n    \"comment_min_len\": 50,\n    \"max_images\": 3,\n    \"image_max_mb\": 5\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/questions/{{question_id}}/options",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "questions", "{{question_id}}", "options"]
+            },
+            "description": "Set YES and NO options for a question."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Respondents",
+      "item": [
+        {
+          "name": "Create Respondent",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('respondent_id', jsonData.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"kind\": \"ORG\",\n  \"name\": \"Монгол Банк ХХК\",\n  \"registration_no\": \"1234567\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/respondents",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "respondents"]
+            },
+            "description": "Create a new respondent (organization or person)."
+          }
+        },
+        {
+          "name": "List Respondents",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/respondents?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "respondents"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                },
+                {
+                  "key": "kind",
+                  "value": "ORG",
+                  "disabled": true
+                },
+                {
+                  "key": "search",
+                  "value": "Монгол",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all respondents with pagination and filtering."
+          }
+        },
+        {
+          "name": "Get Respondent",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/respondents/{{respondent_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "respondents", "{{respondent_id}}"]
+            },
+            "description": "Get a respondent by ID."
+          }
+        },
+        {
+          "name": "Update Respondent",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"Монгол Банк ХХК (шинэчилсэн)\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/respondents/{{respondent_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "respondents", "{{respondent_id}}"]
+            },
+            "description": "Update a respondent."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Assessments",
+      "item": [
+        {
+          "name": "Create Assessment",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 201) {",
+                  "    var jsonData = pm.response.json();",
+                  "    pm.collectionVariables.set('assessment_id', jsonData.id);",
+                  "    // Extract token from URL",
+                  "    var url = jsonData.url;",
+                  "    var token = url.split('/a/')[1];",
+                  "    if (token) {",
+                  "        pm.collectionVariables.set('assessment_token', token);",
+                  "    }",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              },
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"respondent_id\": \"{{respondent_id}}\",\n  \"selected_type_ids\": [\"{{type_id}}\"],\n  \"expires_in_days\": 30\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/admin/assessments",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "assessments"]
+            },
+            "description": "Create a new assessment with a one-time access link."
+          }
+        },
+        {
+          "name": "List Assessments",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/assessments?page=1&page_size=20",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "assessments"],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "page_size",
+                  "value": "20"
+                },
+                {
+                  "key": "respondent_id",
+                  "value": "{{respondent_id}}",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "PENDING",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "List all assessments with pagination and filtering."
+          }
+        },
+        {
+          "name": "Get Assessment",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/assessments/{{assessment_id}}",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "assessments", "{{assessment_id}}"]
+            },
+            "description": "Get an assessment by ID."
+          }
+        },
+        {
+          "name": "Get Assessment Results",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/assessments/{{assessment_id}}/results?breakdown=true",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "assessments", "{{assessment_id}}", "results"],
+              "query": [
+                {
+                  "key": "breakdown",
+                  "value": "true"
+                }
+              ]
+            },
+            "description": "Get assessment results with scores and optional answer breakdown."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Public - Assessment",
+      "item": [
+        {
+          "name": "Get Assessment Form",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/a/{{assessment_token}}",
+              "host": ["{{base_url}}"],
+              "path": ["a", "{{assessment_token}}"]
+            },
+            "description": "Get assessment form data for a respondent. Returns the questionnaire types and questions from the snapshot."
+          }
+        },
+        {
+          "name": "Upload Image Attachment",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "body": {
+              "mode": "formdata",
+              "formdata": [
+                {
+                  "key": "question_id",
+                  "value": "{{question_id}}",
+                  "type": "text"
+                },
+                {
+                  "key": "file",
+                  "type": "file",
+                  "src": ""
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{base_url}}/a/{{assessment_token}}/upload",
+              "host": ["{{base_url}}"],
+              "path": ["a", "{{assessment_token}}", "upload"]
+            },
+            "description": "Upload an image attachment for a question. The returned attachment ID should be included in the submission."
+          }
+        },
+        {
+          "name": "Submit Assessment",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    {\n      \"question_id\": \"{{question_id}}\",\n      \"selected_option\": \"YES\",\n      \"comment\": null,\n      \"attachment_ids\": []\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/a/{{assessment_token}}/submit",
+              "host": ["{{base_url}}"],
+              "path": ["a", "{{assessment_token}}", "submit"]
+            },
+            "description": "Submit assessment answers and get results. Validates all answers, calculates scores, and returns results."
+          }
+        }
+      ]
+    }
+  ]
+}
