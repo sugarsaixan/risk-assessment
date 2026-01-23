@@ -9,7 +9,6 @@ from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from src.core.config import settings
 from src.core.database import get_session
 from src.core.rate_limit import PUBLIC_RATE_LIMIT
 from src.schemas.attachment import AttachmentUpload
@@ -53,7 +52,8 @@ async def get_assessment_form(
 ) -> AssessmentFormResponse | JSONResponse:
     """Get assessment form data for a respondent.
 
-    Returns the questionnaire types and questions from the snapshot.
+    Returns the questionnaire types with groups and questions from the snapshot.
+    The hierarchical structure is: Type → Group → Question
     """
     service = AssessmentService(session)
     assessment, error = await service.get_assessment_status(token)
@@ -88,6 +88,7 @@ async def get_assessment_form(
     # Load respondent in async-safe way before access.
     await session.refresh(assessment, ["respondent"])
 
+    # Return hierarchical structure: types contain groups contain questions
     return AssessmentFormResponse(
         id=str(assessment.id),
         respondent_name=assessment.respondent.name,
@@ -161,9 +162,11 @@ async def submit_assessment(
     data: SubmitRequest,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> SubmitResponse | JSONResponse:
-    """Submit assessment answers and get results.
+    """Submit assessment answers with contact info and get hierarchical results.
 
-    Validates all answers, calculates scores, and returns results.
+    Requires contact information (Овог, Нэр, email, phone, Албан тушаал).
+    Validates all answers, calculates hierarchical scores (Group → Type → Overall),
+    and returns results with per-group, per-type, and overall scores.
     """
     # Validate assessment
     assessment_service = AssessmentService(session)
@@ -187,7 +190,7 @@ async def submit_assessment(
             ).model_dump(),
         )
 
-    # Validate answers
+    # Validate answers against snapshot
     submission_service = SubmissionService(session)
     validation_errors = submission_service.validate_answers(
         assessment.questions_snapshot,
@@ -200,6 +203,10 @@ async def submit_assessment(
             detail={"errors": validation_errors},
         )
 
-    # Process submission
-    result = await submission_service.process_submission(assessment, data.answers)
+    # Process submission with contact info and calculate hierarchical scores
+    result = await submission_service.process_submission(
+        assessment,
+        data.contact,
+        data.answers,
+    )
     return result

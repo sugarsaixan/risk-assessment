@@ -1,4 +1,4 @@
-"""Service for handling assessment submissions."""
+"""Service for handling assessment submissions with contact info and hierarchical scoring."""
 
 from datetime import datetime, timezone
 from typing import Any
@@ -8,10 +8,11 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.answer import Answer
 from src.models.assessment import Assessment
-from src.models.enums import AssessmentStatus
+from src.models.submission_contact import SubmissionContact
 from src.repositories.assessment import AssessmentRepository
 from src.schemas.answer import AnswerInput
-from src.schemas.public import OverallResult, SubmitResponse, TypeResult
+from src.schemas.public import GroupResult, OverallResult, SubmitResponse, TypeResult
+from src.schemas.submission_contact import SubmissionContactInput
 from src.services.scoring import ScoringService
 
 
@@ -30,6 +31,8 @@ class SubmissionService:
     ) -> list[str]:
         """Validate submitted answers against snapshot requirements.
 
+        Supports hierarchical snapshot structure: Type → Group → Question
+
         Args:
             snapshot: Questions snapshot from assessment.
             answers: Submitted answers.
@@ -39,11 +42,12 @@ class SubmissionService:
         """
         errors = []
 
-        # Build question lookup from snapshot
+        # Build question lookup from snapshot (now with groups)
         questions_by_id: dict[str, dict[str, Any]] = {}
         for type_data in snapshot.get("types", []):
-            for question in type_data.get("questions", []):
-                questions_by_id[question["id"]] = question
+            for group_data in type_data.get("groups", []):
+                for question in group_data.get("questions", []):
+                    questions_by_id[question["id"]] = question
 
         # Track answered questions
         answered_ids = set()
@@ -89,21 +93,52 @@ class SubmissionService:
 
         return errors
 
+    async def save_submission_contact(
+        self,
+        assessment_id: UUID,
+        contact: SubmissionContactInput,
+    ) -> SubmissionContact:
+        """Save submission contact information.
+
+        Args:
+            assessment_id: Assessment UUID.
+            contact: Contact input data.
+
+        Returns:
+            Created SubmissionContact record.
+        """
+        submission_contact = SubmissionContact(
+            assessment_id=assessment_id,
+            last_name=contact.last_name,
+            first_name=contact.first_name,
+            email=contact.email,
+            phone=contact.phone,
+            position=contact.position,
+        )
+        self.session.add(submission_contact)
+        await self.session.flush()
+        return submission_contact
+
     async def process_submission(
         self,
         assessment: Assessment,
+        contact: SubmissionContactInput,
         answers: list[AnswerInput],
     ) -> SubmitResponse:
         """Process a valid assessment submission.
 
         Args:
             assessment: The assessment being submitted.
+            contact: Contact information of the person submitting.
             answers: Validated answers.
 
         Returns:
-            SubmitResponse with calculated scores.
+            SubmitResponse with calculated hierarchical scores.
         """
         snapshot = assessment.questions_snapshot
+
+        # Save submission contact
+        await self.save_submission_contact(assessment.id, contact)
 
         # Build answers and calculate scores
         answers_by_question: dict[str, int] = {}
@@ -111,7 +146,7 @@ class SubmissionService:
         for answer_input in answers:
             question_id = str(answer_input.question_id)
 
-            # Find the question in snapshot to get score
+            # Find the score for this answer from snapshot
             score_awarded = self._get_score_for_answer(
                 snapshot, question_id, answer_input.selected_option.value
             )
@@ -128,11 +163,9 @@ class SubmissionService:
 
             answers_by_question[question_id] = score_awarded
 
-            # TODO: Link attachments to answer (T060)
-
         await self.session.flush()
 
-        # Calculate scores per type
+        # Calculate scores per type (includes group scores)
         type_scores = []
         for type_data in snapshot.get("types", []):
             type_score = self.scoring_service.calculate_type_score(
@@ -143,7 +176,7 @@ class SubmissionService:
         # Calculate overall score
         overall_score = self.scoring_service.calculate_overall_score(type_scores)
 
-        # Save scores to database
+        # Save scores to database (group, type, and overall)
         await self.scoring_service.save_scores(
             assessment.id, type_scores, overall_score
         )
@@ -153,7 +186,7 @@ class SubmissionService:
             assessment, datetime.now(timezone.utc)
         )
 
-        # Build response
+        # Build response with hierarchical structure
         return SubmitResponse(
             assessment_id=str(assessment.id),
             type_results=[
@@ -164,6 +197,17 @@ class SubmissionService:
                     max_score=ts["max_score"],
                     percentage=ts["percentage"],
                     risk_rating=ts["risk_rating"],
+                    groups=[
+                        GroupResult(
+                            group_id=gs["group_id"],
+                            group_name=gs["group_name"],
+                            raw_score=gs["raw_score"],
+                            max_score=gs["max_score"],
+                            percentage=gs["percentage"],
+                            risk_rating=gs["risk_rating"],
+                        )
+                        for gs in ts.get("groups", [])
+                    ],
                 )
                 for ts in type_scores
             ],
@@ -183,6 +227,8 @@ class SubmissionService:
     ) -> int:
         """Get the score for a specific answer from snapshot.
 
+        Supports hierarchical snapshot: Type → Group → Question
+
         Args:
             snapshot: Questions snapshot.
             question_id: Question ID.
@@ -192,8 +238,9 @@ class SubmissionService:
             Score value for the selected option.
         """
         for type_data in snapshot.get("types", []):
-            for question in type_data.get("questions", []):
-                if question["id"] == question_id:
-                    options = question.get("options", {})
-                    return options.get(selected_option, {}).get("score", 0)
+            for group_data in type_data.get("groups", []):
+                for question in group_data.get("questions", []):
+                    if question["id"] == question_id:
+                        options = question.get("options", {})
+                        return options.get(selected_option, {}).get("score", 0)
         return 0

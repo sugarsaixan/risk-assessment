@@ -53,6 +53,22 @@ components:
         image_max_mb:
           type: integer
 
+    GroupSnapshot:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          description: Group name (Mongolian)
+        display_order:
+          type: integer
+        questions:
+          type: array
+          items:
+            $ref: '#/components/schemas/QuestionSnapshot'
+
     TypeSnapshot:
       type: object
       properties:
@@ -62,10 +78,10 @@ components:
         name:
           type: string
           description: Type name (Mongolian)
-        questions:
+        groups:
           type: array
           items:
-            $ref: '#/components/schemas/QuestionSnapshot'
+            $ref: '#/components/schemas/GroupSnapshot'
 
     AssessmentForm:
       type: object
@@ -105,21 +121,49 @@ components:
             format: uuid
           description: IDs of uploaded attachments
 
+    SubmissionContactInput:
+      type: object
+      required: [last_name, first_name, email, phone, position]
+      properties:
+        last_name:
+          type: string
+          maxLength: 100
+          description: Овог
+        first_name:
+          type: string
+          maxLength: 100
+          description: Нэр
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone:
+          type: string
+          maxLength: 20
+          description: Утасны дугаар
+        position:
+          type: string
+          maxLength: 200
+          description: Албан тушаал
+
     SubmitRequest:
       type: object
-      required: [answers]
+      required: [answers, contact]
       properties:
         answers:
           type: array
           items:
             $ref: '#/components/schemas/AnswerInput'
+        contact:
+          $ref: '#/components/schemas/SubmissionContactInput'
+          description: Person filling out the form
 
-    TypeResult:
+    GroupResult:
       type: object
       properties:
-        type_name:
+        group_name:
           type: string
-          description: Type name (Mongolian)
+          description: Group name (Mongolian)
         raw_score:
           type: integer
         max_score:
@@ -132,6 +176,25 @@ components:
         risk_rating_label:
           type: string
           description: Risk rating in Mongolian
+
+    TypeResult:
+      type: object
+      properties:
+        type_name:
+          type: string
+          description: Type name (Mongolian)
+        percentage:
+          type: number
+          format: float
+        risk_rating:
+          $ref: '#/components/schemas/RiskRating'
+        risk_rating_label:
+          type: string
+          description: Risk rating in Mongolian
+        group_results:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupResult'
 
     OverallResult:
       type: object

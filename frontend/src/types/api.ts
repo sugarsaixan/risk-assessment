@@ -51,6 +51,21 @@ export interface QuestionnaireType {
 }
 
 // ============================================================================
+// Question Groups (Бүлэг)
+// ============================================================================
+
+export interface QuestionGroup {
+  id: string;
+  type_id: string;
+  name: string;
+  display_order: number;
+  weight: number;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================================
 // Questions
 // ============================================================================
 
@@ -68,13 +83,13 @@ export interface QuestionOption {
 
 export interface Question {
   id: string;
-  type_id: string;
+  group_id: string;
   text: string;
   display_order: number;
   weight: number;
   is_critical: boolean;
   is_active: boolean;
-  created_at: string;
+  created_at?: string;
   options?: QuestionOption[];
 }
 
@@ -87,6 +102,25 @@ export interface Respondent {
   kind: RespondentKind;
   name: string;
   registration_no?: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ============================================================================
+// Submission Contact (Хариулагч)
+// ============================================================================
+
+export interface SubmissionContactInput {
+  last_name: string;
+  first_name: string;
+  email: string;
+  phone: string;
+  position: string;
+}
+
+export interface SubmissionContact extends SubmissionContactInput {
+  id: string;
+  assessment_id: string;
   created_at: string;
   updated_at: string;
 }
@@ -112,7 +146,7 @@ export interface AssessmentCreated {
 }
 
 // ============================================================================
-// Public Assessment Form (Snapshot)
+// Public Assessment Form (Snapshot) - Hierarchical Structure
 // ============================================================================
 
 export interface SnapshotOption {
@@ -128,10 +162,20 @@ export interface SnapshotQuestion {
   id: string;
   text: string;
   display_order: number;
+  weight: number;
+  is_critical: boolean;
   options: {
     YES: SnapshotOption;
     NO: SnapshotOption;
   };
+}
+
+export interface SnapshotGroup {
+  id: string;
+  name: string;
+  display_order: number;
+  weight: number;
+  questions: SnapshotQuestion[];
 }
 
 export interface SnapshotType {
@@ -140,7 +184,7 @@ export interface SnapshotType {
   threshold_high: number;
   threshold_medium: number;
   weight: number;
-  questions: SnapshotQuestion[];
+  groups: SnapshotGroup[];
 }
 
 export interface AssessmentForm {
@@ -162,12 +206,22 @@ export interface AnswerInput {
 }
 
 export interface SubmitRequest {
+  contact: SubmissionContactInput;
   answers: AnswerInput[];
 }
 
 // ============================================================================
-// Results
+// Results - Hierarchical Structure
 // ============================================================================
+
+export interface GroupResult {
+  group_id: string;
+  group_name: string;
+  raw_score: number;
+  max_score: number;
+  percentage: number;
+  risk_rating: RiskRating;
+}
 
 export interface TypeResult {
   type_id: string;
@@ -176,6 +230,7 @@ export interface TypeResult {
   max_score: number;
   percentage: number;
   risk_rating: RiskRating;
+  groups: GroupResult[];
 }
 
 export interface OverallResult {
