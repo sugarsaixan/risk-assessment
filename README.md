@@ -69,3 +69,36 @@ If `TAG` is not set, it defaults to `latest`.
 
 - The frontend build is configured for the `/assessment/` base path.
 - See `DEPLOYMENT.md` for full production steps and troubleshooting.
+
+## Seeding Questions
+
+To populate the database with the default risk assessment questions:
+
+1. **Ensure the database is running** (PostgreSQL via docker-compose):
+
+   ```bash
+   docker-compose up -d postgres
+   ```
+
+2. **Run migrations**:
+
+   ```bash
+   cd backend
+   alembic upgrade head
+   ```
+
+3. **Set environment variables** (if not already configured):
+   - `DATABASE_URL` or appropriate database connection settings
+
+4. **Run the seed**:
+
+   ```bash
+   cd backend
+   python -m src.seeds.questions_seed
+   ```
+
+The script will output progress as it creates:
+- 6 Questionnaire Types
+- 30 Question Groups (5 per type)
+- 150 Questions (25 per type)
+- 300 Question Options (YES/NO for each question)

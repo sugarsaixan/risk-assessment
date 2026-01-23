@@ -1,42 +1,26 @@
 # Backend Dockerfile for Risk Assessment API
-# Multi-stage build for smaller production image
-
-# Stage 1: Build dependencies
-FROM python:3.11-slim as builder
+FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install build dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    build-essential \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install Python dependencies
-COPY pyproject.toml README.md ./
-COPY src/ ./src/
-RUN pip install --no-cache-dir --upgrade pip && \
-    pip install --no-cache-dir .
-
-# Stage 2: Production image
-FROM python:3.11-slim as production
-
-WORKDIR /app
-
-# Install runtime dependencies only
+# Install system dependencies
 RUN apt-get update && apt-get install -y --no-install-recommends \
     libpq5 \
+    libpq-dev \
+    libmagic1 \
     curl \
+    gcc \
     && rm -rf /var/lib/apt/lists/* \
     && useradd --create-home --shell /bin/bash appuser
 
-# Copy installed packages from builder
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Install Python dependencies
+COPY requirements.txt ./
+RUN pip install --no-cache-dir --upgrade pip && \
+    pip install --no-cache-dir -r requirements.txt
 
 # Copy application code
 COPY src/ ./src/
-COPY alembic/ ./alembic/
+COPY migrations/ ./migrations/
 COPY alembic.ini ./
 
 # Set ownership

@@ -34,14 +34,14 @@ CORS_ORIGINS=https://aisys.agula.mn
 ## 2. Build Images
 
 ```bash
-TAG=1.0.0 docker compose build
+TAG=0.1.0 docker compose build
 ```
 
 ## 3. Deploy
 
 ```bash
 # Start all services
-TAG=1.0.0 docker compose up -d
+TAG=0.1.0 docker compose up -d
 
 # Check status
 docker compose ps
@@ -55,8 +55,8 @@ docker compose logs -f
 Use `docker-compose.local.yml` to run everything locally without Traefik.
 
 ```bash
-TAG=1.0.0 docker compose -f docker-compose.local.yml build
-TAG=1.0.0 docker compose -f docker-compose.local.yml up -d
+TAG=0.1.0 docker compose -f docker-compose.local.yml build
+TAG=0.1.0 docker compose -f docker-compose.local.yml up -d
 ```
 
 Local URLs:
@@ -104,7 +104,7 @@ docker compose logs -f api
 docker compose logs -f frontend
 
 # Rebuild and restart
-TAG=1.0.0 docker compose up -d --build
+TAG=0.1.0 docker compose up -d --build
 
 # Database shell
 docker compose exec postgres psql -U postgres -d risk_assessment
@@ -144,7 +144,7 @@ docker compose exec frontend ls -la /usr/share/nginx/html/assessment/
 ```bash
 cd /opt/risk-assessment
 git pull
-TAG=1.0.0 docker compose up -d --build
+TAG=0.1.0 docker compose up -d --build
 docker compose exec api alembic upgrade head
 ```
 
@@ -154,10 +154,72 @@ The compose file supports an optional `TAG` environment variable for API and fro
 
 ```bash
 # Build and run with a custom tag
-TAG=1.0.0 docker compose build
-TAG=1.0.0 docker compose up -d
+TAG=0.1.0 docker compose build
+TAG=0.1.0 docker compose up -d
 
 # Default to latest when TAG is not set
 docker compose build
 docker compose up -d
 ```
+
+
+
+---
+test
+```bash
+# for x86_64 servers
+docker buildx build --platform linux/amd64 -t risk-assessment/api:0.1.0 ./backend --load
+docker buildx build --platform linux/amd64 -t risk-assessment/frontend:0.1.0 ./frontend --load
+
+TAG=0.1.0 docker buildx build --no-cache --platform linux/amd64 -t risk-assessment/api:0.1.0 ./backend --load
+```
+
+```bash
+TAG=0.1.0 docker compose build
+
+docker save \
+  risk-assessment/api:0.1.0 \
+  risk-assessment/frontend:0.1.0 \
+  | gzip > risk-assessment-images-0.1.0.tar.gz
+```
+
+```bash
+scp risk-assessment-images-0.1.0.tar.gz agula@45.117.32.145:/home/agula/test-sugarsaikhan/risk-assessment/
+```
+
+```bash
+cd /opt/risk-assessment
+gunzip -c risk-assessment-images-0.1.0.tar.gz | docker load
+
+TAG=0.1.0 docker compose -f docker-compose.yml up -d
+
+docker compose exec api alembic upgrade head
+
+docker compose exec api python -m src.seeds.questions_seed
+docker compose exec api python -m src.cli create-key "Test Key"
+```
+
+```bash
+TAG=0.1.0 docker compose -f docker-compose.yml down
+
+# Removing DB
+TAG=0.1.0 docker compose -f docker-compose.local.yml down -v
+```
+
+```bash
+ Before running the seed:                                                                                                             
+                                                                                                                                       
+  1. Ensure the database is running (PostgreSQL via docker-compose):                                                                   
+  docker-compose up -d postgres                                                                                                        
+  2. Run migrations:                                                                                                                   
+  cd backend                                                                                                                           
+  alembic upgrade head
+
+
+  3. Set environment variables (if not already configured):                                                                            
+    - DATABASE_URL or appropriate database connection settings                                                                         
+  4. Run the seed:                                                                                                                     
+  cd backend                                                                                                                           
+  python -m src.seeds.questions_seed      
+  ```                                                                                             
+                                           
