@@ -15,6 +15,7 @@ COPY . .
 
 # Build with base path for /assessment/ deployment
 ENV VITE_BASE_PATH=/assessment/
+ENV VITE_API_URL=/assessment/api
 RUN npm run build
 
 # Stage 2: Production with nginx
