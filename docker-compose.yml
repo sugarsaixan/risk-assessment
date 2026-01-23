@@ -5,54 +5,104 @@ services:
   postgres:
     image: postgres:15-alpine
     container_name: risk-assessment-db
+    restart: always
     environment:
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: risk_assessment
-    ports:
-      - "5432:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-risk_assessment}
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    networks:
+      production:
+        aliases:
+          - risk-assessment-db
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
       retries: 5
 
-  # MinIO Object Storage (S3-compatible)
-  minio:
-    image: minio/minio:latest
-    container_name: risk-assessment-minio
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: minioadmin
-      MINIO_ROOT_PASSWORD: minioadmin
-    ports:
-      - "9000:9000"   # API
-      - "9001:9001"   # Console
-    volumes:
-      - minio_data:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 5s
-      retries: 5
-
-  # MinIO bucket initialization
-  minio-init:
-    image: minio/mc:latest
-    container_name: risk-assessment-minio-init
+  # Backend API
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    image: risk-assessment/api:latest
+    container_name: risk-assessment-api
+    restart: always
+    mem_limit: 512m
+    memswap_limit: 512m
     depends_on:
-      minio:
+      postgres:
         condition: service_healthy
-    entrypoint: >
-      /bin/sh -c "
-      mc alias set myminio http://minio:9000 minioadmin minioadmin;
-      mc mb myminio/risk-assessment --ignore-existing;
-      mc anonymous set download myminio/risk-assessment;
-      exit 0;
-      "
+    environment:
+      DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@risk-assessment-db:5432/${POSTGRES_DB:-risk_assessment}
+      PUBLIC_URL: ${PUBLIC_URL:-https://aisys.agula.mn/assessment}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://aisys.agula.mn}
+    networks:
+      production:
+        aliases:
+          - risk-assessment-api
+      traefik:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+
+      # API routes under /assessment/api/
+      - "traefik.http.routers.risk-assessment-api-secure.entrypoints=websecure"
+      - "traefik.http.routers.risk-assessment-api-secure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment/api`)"
+      - "traefik.http.routers.risk-assessment-api-secure.tls=true"
+      - "traefik.http.routers.risk-assessment-api-secure.service=risk-assessment-api-secure"
+      - "traefik.http.routers.risk-assessment-api-secure.middlewares=risk-assessment-api-strip"
+
+      - "traefik.http.routers.risk-assessment-api-insecure.entrypoints=web"
+      - "traefik.http.routers.risk-assessment-api-insecure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment/api`)"
+      - "traefik.http.routers.risk-assessment-api-insecure.middlewares=redirectSecure@file"
+
+      # Strip /assessment/api prefix before sending to backend
+      - "traefik.http.middlewares.risk-assessment-api-strip.stripprefix.prefixes=/assessment/api"
+
+      - "traefik.http.services.risk-assessment-api-secure.loadbalancer.server.port=8000"
+
+  # Frontend UI
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    image: risk-assessment/frontend:latest
+    container_name: risk-assessment-frontend
+    restart: always
+    mem_limit: 128m
+    memswap_limit: 128m
+    depends_on:
+      - api
+    networks:
+      production:
+        aliases:
+          - risk-assessment-frontend
+      traefik:
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik"
+
+      # Frontend routes under /assessment/
+      - "traefik.http.routers.risk-assessment-frontend-secure.entrypoints=websecure"
+      - "traefik.http.routers.risk-assessment-frontend-secure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment`)"
+      - "traefik.http.routers.risk-assessment-frontend-secure.tls=true"
+      - "traefik.http.routers.risk-assessment-frontend-secure.service=risk-assessment-frontend-secure"
+      - "traefik.http.routers.risk-assessment-frontend-secure.priority=1"
+
+      - "traefik.http.routers.risk-assessment-frontend-insecure.entrypoints=web"
+      - "traefik.http.routers.risk-assessment-frontend-insecure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment`)"
+      - "traefik.http.routers.risk-assessment-frontend-insecure.middlewares=redirectSecure@file"
+
+      - "traefik.http.services.risk-assessment-frontend-secure.loadbalancer.server.port=80"
 
 volumes:
   postgres_data:
-  minio_data:
+
+networks:
+  traefik:
+    external: true
+  production:
+    external: true
