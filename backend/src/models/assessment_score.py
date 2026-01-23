@@ -1,4 +1,4 @@
-"""AssessmentScore model for calculated scores per type and overall."""
+"""AssessmentScore model for calculated scores per group, type, and overall."""
 
 import uuid
 from decimal import Decimal
@@ -21,11 +21,15 @@ from src.models.enums import RiskRating
 class AssessmentScore(BaseModel):
     """Calculated score for an assessment.
 
-    One record per questionnaire type, plus one with type_id=NULL for overall score.
+    Hierarchy of scores:
+    - group_id != NULL, type_id != NULL: Group-level score within a type
+    - group_id == NULL, type_id != NULL: Type-level score (aggregate of groups)
+    - group_id == NULL, type_id == NULL: Overall score (aggregate of types)
 
     Attributes:
         assessment_id: Reference to parent Assessment.
         type_id: QuestionnaireType ID, or NULL for overall score.
+        group_id: QuestionGroup ID, or NULL for type/overall score.
         raw_score: Sum of awarded scores.
         max_score: Maximum possible score.
         percentage: (raw_score / max_score) * 100.
@@ -34,7 +38,10 @@ class AssessmentScore(BaseModel):
 
     __tablename__ = "assessment_scores"
     __table_args__ = (
-        UniqueConstraint("assessment_id", "type_id", name="uq_assessment_score_type"),
+        UniqueConstraint(
+            "assessment_id", "type_id", "group_id",
+            name="uq_assessment_score_type_group"
+        ),
         CheckConstraint("raw_score >= 0", name="ck_raw_score_positive"),
         CheckConstraint("max_score >= 0", name="ck_max_score_positive"),
         CheckConstraint("raw_score <= max_score", name="ck_raw_score_lte_max"),
@@ -51,6 +58,11 @@ class AssessmentScore(BaseModel):
         UUID(as_uuid=True),
         nullable=True,
         comment="Type ID or NULL for overall",
+    )
+    group_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        nullable=True,
+        comment="Group ID or NULL for type/overall",
     )
     raw_score: Mapped[int] = mapped_column(
         Integer,
@@ -75,4 +87,5 @@ class AssessmentScore(BaseModel):
 
     def __repr__(self) -> str:
         type_str = str(self.type_id) if self.type_id else "OVERALL"
-        return f"<AssessmentScore(assessment_id={self.assessment_id}, type={type_str}, rating={self.risk_rating})>"
+        group_str = str(self.group_id) if self.group_id else "TYPE/OVERALL"
+        return f"<AssessmentScore(assessment_id={self.assessment_id}, type={type_str}, group={group_str}, rating={self.risk_rating})>"

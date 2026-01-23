@@ -9,9 +9,9 @@ from pydantic import BaseModel, ConfigDict, Field
 class QuestionCreate(BaseModel):
     """Schema for creating a question."""
 
-    type_id: UUID = Field(..., description="Parent questionnaire type ID")
+    group_id: UUID = Field(..., description="Parent question group ID")
     text: str = Field(..., min_length=1, max_length=2000, description="Question text (Mongolian)")
-    display_order: int = Field(default=0, ge=0, description="Order within type for display")
+    display_order: int = Field(default=0, ge=0, description="Order within group for display")
     weight: Decimal = Field(
         default=Decimal("1.0"),
         gt=0,
@@ -37,7 +37,7 @@ class QuestionResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    type_id: UUID
+    group_id: UUID
     text: str
     display_order: int
     weight: Decimal
@@ -51,7 +51,7 @@ class QuestionWithOptionsResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: UUID
-    type_id: UUID
+    group_id: UUID
     text: str
     display_order: int
     weight: Decimal

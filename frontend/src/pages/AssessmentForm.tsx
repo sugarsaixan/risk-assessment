@@ -1,5 +1,6 @@
 /**
- * AssessmentForm page with react-hook-form, conditional fields, and validation.
+ * AssessmentForm page with hierarchical Type → Group → Question structure,
+ * contact info form, and validation.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -7,6 +8,7 @@ import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { CommentField } from "../components/CommentField";
+import { ContactForm } from "../components/ContactForm";
 import { ImageUpload } from "../components/ImageUpload";
 import { ProgressBar } from "../components/ProgressBar";
 import { QuestionCard } from "../components/QuestionCard";
@@ -15,7 +17,7 @@ import { useAssessment, getAllQuestions, getTotalQuestions } from "../hooks/useA
 import { ThemeToggle } from "../hooks/useTheme";
 import { useMultiQuestionUpload } from "../hooks/useUpload";
 import { submitAssessment } from "../services/assessment";
-import type { OptionType, SnapshotQuestion } from "../types/api";
+import type { OptionType, SnapshotQuestion, SubmissionContactInput } from "../types/api";
 
 interface FormAnswer {
   selected_option?: OptionType;
@@ -23,6 +25,7 @@ interface FormAnswer {
 }
 
 interface FormData {
+  contact: Partial<SubmissionContactInput>;
   answers: Record<string, FormAnswer>;
 }
 
@@ -32,6 +35,7 @@ export function AssessmentForm() {
   const { state } = useAssessment(token);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [contactErrors, setContactErrors] = useState<Partial<Record<keyof SubmissionContactInput, string>>>({});
 
   const {
     register,
@@ -41,11 +45,14 @@ export function AssessmentForm() {
     formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
+      contact: {},
       answers: {},
     },
   });
 
-  const answers = watch("answers");
+  const formData = watch();
+  const answers = formData.answers;
+  const contact = formData.contact;
 
   // Upload management
   const {
@@ -69,6 +76,18 @@ export function AssessmentForm() {
     if (state.status !== "success") return [];
     return getAllQuestions(state.data);
   }, [state]);
+
+  // Handle contact field change
+  const handleContactChange = useCallback(
+    (field: keyof SubmissionContactInput, value: string) => {
+      setValue(`contact.${field}`, value);
+      // Clear error when user starts typing
+      if (contactErrors[field]) {
+        setContactErrors((prev) => ({ ...prev, [field]: undefined }));
+      }
+    },
+    [setValue, contactErrors]
+  );
 
   // Handle option selection
   const handleOptionSelect = useCallback(
@@ -128,6 +147,32 @@ export function AssessmentForm() {
     []
   );
 
+  // Validate contact fields
+  const validateContact = useCallback((): boolean => {
+    const errors: Partial<Record<keyof SubmissionContactInput, string>> = {};
+
+    if (!contact.last_name?.trim()) {
+      errors.last_name = "Овог оруулна уу";
+    }
+    if (!contact.first_name?.trim()) {
+      errors.first_name = "Нэр оруулна уу";
+    }
+    if (!contact.email?.trim()) {
+      errors.email = "И-мэйл оруулна уу";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email)) {
+      errors.email = "И-мэйл хаяг буруу байна";
+    }
+    if (!contact.phone?.trim()) {
+      errors.phone = "Утасны дугаар оруулна уу";
+    }
+    if (!contact.position?.trim()) {
+      errors.position = "Албан тушаал оруулна уу";
+    }
+
+    setContactErrors(errors);
+    return Object.keys(errors).length === 0;
+  }, [contact]);
+
   // Validate answer against requirements
   const validateAnswer = useCallback(
     (questionId: string): string | null => {
@@ -163,6 +208,12 @@ export function AssessmentForm() {
   const onSubmit = async () => {
     if (!token || state.status !== "success") return;
 
+    // Validate contact info
+    if (!validateContact()) {
+      setSubmitError("Хариулагчийн мэдээллийг бүрэн бөглөнө үү");
+      return;
+    }
+
     // Validate all answers
     const validationErrors: string[] = [];
     for (const question of allQuestions) {
@@ -180,8 +231,15 @@ export function AssessmentForm() {
     setIsSubmitting(true);
     setSubmitError(null);
 
-    // Build submission data
+    // Build submission data with contact and answers
     const submitData = {
+      contact: {
+        last_name: contact.last_name!.trim(),
+        first_name: contact.first_name!.trim(),
+        email: contact.email!.trim(),
+        phone: contact.phone!.trim(),
+        position: contact.position!.trim(),
+      },
       answers: allQuestions.map((question) => ({
         question_id: question.id,
         selected_option: answers[question.id]?.selected_option || "NO",
@@ -237,6 +295,13 @@ export function AssessmentForm() {
 
   const { data: form } = state;
 
+  // Calculate question number accounting for hierarchical structure
+  let questionCounter = 0;
+  const getQuestionNumber = () => {
+    questionCounter++;
+    return questionCounter;
+  };
+
   return (
     <div className="min-h-screen py-8 px-4 sm:px-6 lg:px-8">
       <div className="container-app">
@@ -265,16 +330,24 @@ export function AssessmentForm() {
             </div>
             <ThemeToggle />
           </div>
-
         </div>
 
+        {/* Contact Form */}
+        <ContactForm
+          value={contact}
+          onChange={handleContactChange}
+          errors={contactErrors}
+          className="mb-6"
+        />
+
+        {/* Progress Bar */}
         <div className="surface-card p-4 mb-8">
           <ProgressBar current={answeredCount} total={totalQuestions} />
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
-          {/* Questions grouped by type */}
+          {/* Questions grouped by type → group → question */}
           {form.types.map((type) => (
             <div key={type.id} className="space-y-6">
               {/* Type header */}
@@ -284,78 +357,86 @@ export function AssessmentForm() {
                 </h2>
               </div>
 
-              {/* Questions */}
-              {type.questions.map((question, index) => {
-                const selectedOption = answers[question.id]?.selected_option;
-                const optionConfig = getOptionConfig(question, selectedOption);
-                const validationError = validateAnswer(question.id);
-                const questionNumber =
-                  form.types
-                    .slice(0, form.types.indexOf(type))
-                    .reduce((sum, t) => sum + t.questions.length, 0) +
-                  index +
-                  1;
+              {/* Groups within type */}
+              {type.groups.map((group) => (
+                <div key={group.id} className="space-y-4">
+                  {/* Group header */}
+                  <div className="px-4 py-2 bg-[var(--surface-elevated)] border-l-2 border-[var(--primary)]">
+                    <h3 className="text-sm font-medium text-[var(--foreground)]">
+                      {group.name}
+                    </h3>
+                  </div>
 
-                return (
-                  <QuestionCard
-                    key={question.id}
-                    questionId={question.id}
-                    text={question.text}
-                    questionNumber={questionNumber}
-                    selectedOption={selectedOption}
-                    onSelect={(option) => handleOptionSelect(question.id, option)}
-                    yesRequiresComment={question.options.YES.require_comment}
-                    yesRequiresImage={question.options.YES.require_image}
-                    noRequiresComment={question.options.NO.require_comment}
-                    noRequiresImage={question.options.NO.require_image}
-                  >
-                    {/* Conditional fields */}
-                    {selectedOption && optionConfig && (
-                      <div className="space-y-4">
-                        {/* Comment field */}
-                        {optionConfig.require_comment && (
-                          <CommentField
-                            value={answers[question.id]?.comment || ""}
-                            onChange={(value) =>
-                              handleCommentChange(question.id, value)
-                            }
-                            required
-                            minLength={optionConfig.comment_min_len}
-                            maxLength={2000}
-                            error={
-                              validationError?.includes(MN.assessment.minCommentLength(0).split(" ")[0])
-                                ? validationError
-                                : undefined
-                            }
-                          />
-                        )}
+                  {/* Questions within group */}
+                  {group.questions.map((question) => {
+                    const questionNumber = getQuestionNumber();
+                    const selectedOption = answers[question.id]?.selected_option;
+                    const optionConfig = getOptionConfig(question, selectedOption);
+                    const validationError = validateAnswer(question.id);
 
-                        {/* Image upload */}
-                        {optionConfig.require_image && (
-                          <ImageUpload
-                            images={getFilesForQuestion(question.id)}
-                            onUpload={(files) =>
-                              handleImageUpload(question.id, files)
-                            }
-                            onRemove={(imageId) =>
-                              handleImageRemove(question.id, imageId)
-                            }
-                            required
-                            maxImages={optionConfig.max_images}
-                            maxSizeMb={optionConfig.image_max_mb}
-                            isUploading={isUploadingForQuestion(question.id)}
-                            error={
-                              validationError === MN.assessment.requiredImage
-                                ? validationError
-                                : undefined
-                            }
-                          />
+                    return (
+                      <QuestionCard
+                        key={question.id}
+                        questionId={question.id}
+                        text={question.text}
+                        questionNumber={questionNumber}
+                        selectedOption={selectedOption}
+                        onSelect={(option) => handleOptionSelect(question.id, option)}
+                        yesRequiresComment={question.options.YES.require_comment}
+                        yesRequiresImage={question.options.YES.require_image}
+                        noRequiresComment={question.options.NO.require_comment}
+                        noRequiresImage={question.options.NO.require_image}
+                        isCritical={question.is_critical}
+                      >
+                        {/* Conditional fields */}
+                        {selectedOption && optionConfig && (
+                          <div className="space-y-4">
+                            {/* Comment field */}
+                            {optionConfig.require_comment && (
+                              <CommentField
+                                value={answers[question.id]?.comment || ""}
+                                onChange={(value) =>
+                                  handleCommentChange(question.id, value)
+                                }
+                                required
+                                minLength={optionConfig.comment_min_len}
+                                maxLength={2000}
+                                error={
+                                  validationError?.includes(MN.assessment.minCommentLength(0).split(" ")[0])
+                                    ? validationError
+                                    : undefined
+                                }
+                              />
+                            )}
+
+                            {/* Image upload */}
+                            {optionConfig.require_image && (
+                              <ImageUpload
+                                images={getFilesForQuestion(question.id)}
+                                onUpload={(files) =>
+                                  handleImageUpload(question.id, files)
+                                }
+                                onRemove={(imageId) =>
+                                  handleImageRemove(question.id, imageId)
+                                }
+                                required
+                                maxImages={optionConfig.max_images}
+                                maxSizeMb={optionConfig.image_max_mb}
+                                isUploading={isUploadingForQuestion(question.id)}
+                                error={
+                                  validationError === MN.assessment.requiredImage
+                                    ? validationError
+                                    : undefined
+                                }
+                              />
+                            )}
+                          </div>
                         )}
-                      </div>
-                    )}
-                  </QuestionCard>
-                );
-              })}
+                      </QuestionCard>
+                    );
+                  })}
+                </div>
+              ))}
             </div>
           ))}
 

@@ -8,6 +8,17 @@ from pydantic import BaseModel, ConfigDict, Field
 from src.models.enums import OptionType, RiskRating
 
 
+class GroupScore(BaseModel):
+    """Schema for per-group score result within a type."""
+
+    group_id: UUID = Field(..., description="Question group ID")
+    group_name: str = Field(..., description="Question group name")
+    raw_score: int = Field(..., ge=0, description="Total points awarded")
+    max_score: int = Field(..., ge=0, description="Maximum possible points")
+    percentage: float = Field(..., ge=0, le=100, description="Score percentage")
+    risk_rating: RiskRating = Field(..., description="Risk rating based on thresholds")
+
+
 class TypeScore(BaseModel):
     """Schema for per-type score result."""
 
@@ -17,6 +28,10 @@ class TypeScore(BaseModel):
     max_score: int = Field(..., ge=0, description="Maximum possible points")
     percentage: float = Field(..., ge=0, le=100, description="Score percentage")
     risk_rating: RiskRating = Field(..., description="Risk rating based on thresholds")
+    groups: list[GroupScore] = Field(
+        default_factory=list,
+        description="Per-group score breakdown within this type",
+    )
 
 
 class OverallScore(BaseModel):
@@ -42,6 +57,18 @@ class AnswerBreakdown(BaseModel):
     attachment_count: int = Field(default=0, ge=0, description="Number of attachments")
 
 
+class SubmissionContactInfo(BaseModel):
+    """Schema for submission contact info in results."""
+
+    model_config = ConfigDict(from_attributes=True)
+
+    last_name: str = Field(..., description="Овог (Family name)")
+    first_name: str = Field(..., description="Нэр (Given name)")
+    email: str = Field(..., description="Email address")
+    phone: str = Field(..., description="Phone number")
+    position: str = Field(..., description="Албан тушаал (Job position)")
+
+
 class AssessmentResultsResponse(BaseModel):
     """Schema for complete assessment results."""
 
@@ -53,10 +80,16 @@ class AssessmentResultsResponse(BaseModel):
     status: str = Field(..., description="Assessment status")
     completed_at: datetime | None = Field(None, description="Completion timestamp")
 
+    # Submission contact (who filled the form)
+    contact: SubmissionContactInfo | None = Field(
+        None,
+        description="Contact info of person who filled the assessment (Хариулагч)",
+    )
+
     # Scores
     type_scores: list[TypeScore] = Field(
         ...,
-        description="Per-type score results",
+        description="Per-type score results with group breakdown",
     )
     overall_score: OverallScore = Field(
         ...,

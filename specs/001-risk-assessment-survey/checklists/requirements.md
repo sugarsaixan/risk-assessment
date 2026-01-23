@@ -35,3 +35,11 @@
 - All requirements derived directly from PRD Phase 1 scope
 - Assumptions section documents external dependencies (auth, storage, database)
 - Single language (Mongolian Cyrillic) explicitly scoped per PRD requirements
+
+### Update 2026-01-23
+
+- Added Question Group (Бүлэг) entity as intermediate level between Type and Questions
+- Updated scoring hierarchy: Questions → Groups → Types → Overall
+- All score calculations now explicitly backend-only (FR-038)
+- Added Submission Contact (Хариулагч) entity with fields: Овог, Нэр, email, phone, Албан тушаал
+- Updated relevant user stories, acceptance scenarios, and functional requirements

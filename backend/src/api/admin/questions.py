@@ -9,8 +9,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.auth import CurrentApiKey
 from src.core.database import get_session
 from src.repositories.question import QuestionRepository
+from src.repositories.question_group import QuestionGroupRepository
 from src.repositories.question_option import QuestionOptionRepository
-from src.repositories.questionnaire_type import QuestionnaireTypeRepository
 from src.schemas.common import PaginatedResponse
 from src.schemas.question import (
     QuestionCreate,
@@ -34,20 +34,20 @@ async def create_question(
     _api_key: CurrentApiKey,
     session: Annotated[AsyncSession, Depends(get_session)],
 ) -> QuestionResponse:
-    """Create a new question for a questionnaire type."""
-    # Verify type exists
-    type_repo = QuestionnaireTypeRepository(session)
-    qtype = await type_repo.get_by_id(data.type_id)
-    if qtype is None:
+    """Create a new question for a question group."""
+    # Verify group exists
+    group_repo = QuestionGroupRepository(session)
+    group = await group_repo.get_by_id(data.group_id)
+    if group is None:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
-            detail="Questionnaire type not found",
+            detail="Question group not found",
         )
 
     # Auto-assign display_order if not provided or 0
     question_repo = QuestionRepository(session)
     if data.display_order == 0:
-        data.display_order = await question_repo.get_next_display_order(data.type_id)
+        data.display_order = await question_repo.get_next_display_order(data.group_id)
 
     question = await question_repo.create(data)
     return QuestionResponse.model_validate(question)
@@ -61,19 +61,19 @@ async def create_question(
 async def list_questions(
     _api_key: CurrentApiKey,
     session: Annotated[AsyncSession, Depends(get_session)],
-    type_id: UUID = Query(..., description="Filter by questionnaire type ID"),
+    group_id: UUID = Query(..., description="Filter by question group ID"),
     page: int = Query(1, ge=1, description="Page number"),
     page_size: int = Query(20, ge=1, le=100, description="Items per page"),
     is_active: bool | None = Query(None, description="Filter by active status"),
 ) -> PaginatedResponse[QuestionResponse]:
-    """List questions for a questionnaire type."""
+    """List questions for a question group."""
     repo = QuestionRepository(session)
     offset = (page - 1) * page_size
 
-    questions = await repo.get_by_type(
-        type_id, is_active=is_active, offset=offset, limit=page_size
+    questions = await repo.get_by_group(
+        group_id, is_active=is_active, offset=offset, limit=page_size
     )
-    total = await repo.count_by_type(type_id, is_active=is_active)
+    total = await repo.count_by_group(group_id, is_active=is_active)
 
     return PaginatedResponse.create(
         items=[QuestionResponse.model_validate(q) for q in questions],
@@ -105,7 +105,7 @@ async def get_question(
 
     return QuestionWithOptionsResponse(
         id=question.id,
-        type_id=question.type_id,
+        group_id=question.group_id,
         text=question.text,
         display_order=question.display_order,
         weight=question.weight,

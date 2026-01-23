@@ -19,9 +19,11 @@ from src.models.enums import (
     ScoringMethod,
 )
 from src.models.question import Question
+from src.models.question_group import QuestionGroup
 from src.models.question_option import QuestionOption
 from src.models.questionnaire_type import QuestionnaireType
 from src.models.respondent import Respondent
+from src.models.submission_contact import SubmissionContact
 
 __all__ = [
     # Base
@@ -43,7 +45,9 @@ __all__ = [
     "AssessmentScore",
     "Attachment",
     "Question",
+    "QuestionGroup",
     "QuestionOption",
     "QuestionnaireType",
     "Respondent",
+    "SubmissionContact",
 ]

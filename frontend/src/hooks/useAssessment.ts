@@ -1,11 +1,12 @@
 /**
  * Hook to fetch assessment form data and handle loading/error states.
+ * Supports hierarchical Type → Group → Question structure.
  */
 
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { getAssessmentForm, type AssessmentResult } from "../services/assessment";
-import type { AssessmentForm } from "../types/api";
+import type { AssessmentForm, SnapshotQuestion } from "../types/api";
 
 export type AssessmentState =
   | { status: "loading" }
@@ -76,23 +77,44 @@ export function useAssessment(token: string | undefined): UseAssessmentReturn {
 }
 
 /**
- * Helper to get all questions from assessment form.
+ * Extended question type with group and type info.
  */
-export function getAllQuestions(form: AssessmentForm) {
+interface ExtendedQuestion extends SnapshotQuestion {
+  typeName: string;
+  typeId: string;
+  groupName: string;
+  groupId: string;
+}
+
+/**
+ * Helper to get all questions from assessment form.
+ * Traverses hierarchical Type → Group → Question structure.
+ */
+export function getAllQuestions(form: AssessmentForm): ExtendedQuestion[] {
   return form.types.flatMap((type) =>
-    type.questions.map((q) => ({
-      ...q,
-      typeName: type.name,
-      typeId: type.id,
-    }))
+    type.groups.flatMap((group) =>
+      group.questions.map((q) => ({
+        ...q,
+        typeName: type.name,
+        typeId: type.id,
+        groupName: group.name,
+        groupId: group.id,
+      }))
+    )
   );
 }
 
 /**
  * Helper to count total questions.
+ * Traverses hierarchical Type → Group → Question structure.
  */
 export function getTotalQuestions(form: AssessmentForm): number {
-  return form.types.reduce((sum, type) => sum + type.questions.length, 0);
+  return form.types.reduce(
+    (sum, type) =>
+      sum +
+      type.groups.reduce((groupSum, group) => groupSum + group.questions.length, 0),
+    0
+  );
 }
 
 export default useAssessment;

@@ -40,18 +40,18 @@ class QuestionRepository:
         )
         return result.scalar_one_or_none()
 
-    async def get_by_type(
+    async def get_by_group(
         self,
-        type_id: UUID,
+        group_id: UUID,
         *,
         is_active: bool | None = None,
         offset: int = 0,
         limit: int = 100,
     ) -> list[Question]:
-        """Get questions for a questionnaire type."""
+        """Get questions for a question group."""
         stmt = (
             select(Question)
-            .where(Question.type_id == type_id)
+            .where(Question.group_id == group_id)
             .order_by(Question.display_order)
         )
 
@@ -62,16 +62,16 @@ class QuestionRepository:
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def get_by_type_with_options(
+    async def get_by_group_with_options(
         self,
-        type_id: UUID,
+        group_id: UUID,
         *,
         is_active: bool | None = None,
     ) -> list[Question]:
-        """Get questions for a type with options loaded."""
+        """Get questions for a group with options loaded."""
         stmt = (
             select(Question)
-            .where(Question.type_id == type_id)
+            .where(Question.group_id == group_id)
             .options(selectinload(Question.options))
             .order_by(Question.display_order)
         )
@@ -82,11 +82,33 @@ class QuestionRepository:
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
-    async def count_by_type(self, type_id: UUID, *, is_active: bool | None = None) -> int:
-        """Count questions for a questionnaire type."""
+    async def get_by_group_ids_with_options(
+        self,
+        group_ids: list[UUID],
+        *,
+        is_active: bool | None = None,
+    ) -> list[Question]:
+        """Get questions for multiple groups with options loaded."""
+        if not group_ids:
+            return []
+        stmt = (
+            select(Question)
+            .where(Question.group_id.in_(group_ids))
+            .options(selectinload(Question.options))
+            .order_by(Question.group_id, Question.display_order)
+        )
+
+        if is_active is not None:
+            stmt = stmt.where(Question.is_active == is_active)
+
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def count_by_group(self, group_id: UUID, *, is_active: bool | None = None) -> int:
+        """Count questions for a question group."""
         from sqlalchemy import func
 
-        stmt = select(func.count(Question.id)).where(Question.type_id == type_id)
+        stmt = select(func.count(Question.id)).where(Question.group_id == group_id)
 
         if is_active is not None:
             stmt = stmt.where(Question.is_active == is_active)
@@ -103,13 +125,13 @@ class QuestionRepository:
         await self.session.refresh(question)
         return question
 
-    async def get_next_display_order(self, type_id: UUID) -> int:
-        """Get the next display order for a new question in a type."""
+    async def get_next_display_order(self, group_id: UUID) -> int:
+        """Get the next display order for a new question in a group."""
         from sqlalchemy import func
 
         result = await self.session.execute(
             select(func.coalesce(func.max(Question.display_order), -1) + 1).where(
-                Question.type_id == type_id
+                Question.group_id == group_id
             )
         )
         return result.scalar_one()

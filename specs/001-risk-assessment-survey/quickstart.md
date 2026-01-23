@@ -197,11 +197,17 @@ curl -X POST http://localhost:8000/api/admin/types \
   -H "X-API-Key: sk_your_key" \
   -d '{"name": "Санхүүгийн эрсдэл", "threshold_high": 80, "threshold_medium": 50}'
 
-# Create question
+# Create question group within type
+curl -X POST http://localhost:8000/api/admin/groups \
+  -H "Content-Type: application/json" \
+  -H "X-API-Key: sk_your_key" \
+  -d '{"type_id": "uuid", "name": "Санхүүгийн тайлагнал", "weight": 1.0}'
+
+# Create question within group
 curl -X POST http://localhost:8000/api/admin/questions \
   -H "Content-Type: application/json" \
   -H "X-API-Key: sk_your_key" \
-  -d '{"type_id": "uuid", "text": "Байгууллага санхүүгийн тайлан гаргадаг уу?"}'
+  -d '{"group_id": "uuid", "text": "Байгууллага санхүүгийн тайлан гаргадаг уу?"}'
 
 # Set question options
 curl -X PUT http://localhost:8000/api/admin/questions/{question_id}/options \
@@ -243,10 +249,17 @@ curl -X POST http://localhost:8000/api/public/a/{token}/upload \
   -F "file=@image.jpg" \
   -F "question_id=uuid"
 
-# Submit assessment
+# Submit assessment (with contact info)
 curl -X POST http://localhost:8000/api/public/a/{token}/submit \
   -H "Content-Type: application/json" \
   -d '{
+    "contact": {
+      "last_name": "Батболд",
+      "first_name": "Дорж",
+      "email": "dorj@company.mn",
+      "phone": "99112233",
+      "position": "Менежер"
+    },
     "answers": [
       {"question_id": "uuid", "selected_option": "YES"},
       {"question_id": "uuid", "selected_option": "NO", "comment": "Тайлбар...", "attachment_ids": ["uuid"]}
