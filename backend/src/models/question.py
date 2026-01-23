@@ -11,19 +11,19 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from src.models.base import BaseModel
 
 if TYPE_CHECKING:
+    from src.models.question_group import QuestionGroup
     from src.models.question_option import QuestionOption
-    from src.models.questionnaire_type import QuestionnaireType
 
 
 class Question(BaseModel):
-    """Individual YES/NO question within a questionnaire type.
+    """Individual YES/NO question within a question group.
 
     Attributes:
-        type_id: Reference to parent QuestionnaireType.
+        group_id: Reference to parent QuestionGroup.
         text: Question text (in Mongolian).
-        display_order: Order within the type for display.
-        weight: Question weight for scoring (future use).
-        is_critical: Critical flag (future use).
+        display_order: Order within the group for display.
+        weight: Question weight for scoring.
+        is_critical: Critical flag for highlighting important questions.
         is_active: Available for snapshots.
     """
 
@@ -33,9 +33,9 @@ class Question(BaseModel):
         CheckConstraint("char_length(text) <= 2000", name="ck_text_max_length"),
     )
 
-    type_id: Mapped[uuid.UUID] = mapped_column(
+    group_id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
-        ForeignKey("questionnaire_types.id", ondelete="CASCADE"),
+        ForeignKey("question_groups.id", ondelete="CASCADE"),
         nullable=False,
         index=True,
     )
@@ -48,19 +48,19 @@ class Question(BaseModel):
         Integer,
         nullable=False,
         default=0,
-        comment="Order within type for display",
+        comment="Order within group for display",
     )
     weight: Mapped[Decimal] = mapped_column(
         Numeric(5, 2),
         nullable=False,
         default=Decimal("1.0"),
-        comment="Question weight (future use)",
+        comment="Question weight for scoring",
     )
     is_critical: Mapped[bool] = mapped_column(
         Boolean,
         nullable=False,
         default=False,
-        comment="Critical flag (future use)",
+        comment="Critical flag for highlighting",
     )
     is_active: Mapped[bool] = mapped_column(
         Boolean,
@@ -71,8 +71,8 @@ class Question(BaseModel):
     )
 
     # Relationships
-    questionnaire_type: Mapped["QuestionnaireType"] = relationship(
-        "QuestionnaireType",
+    group: Mapped["QuestionGroup"] = relationship(
+        "QuestionGroup",
         back_populates="questions",
     )
     options: Mapped[list["QuestionOption"]] = relationship(
