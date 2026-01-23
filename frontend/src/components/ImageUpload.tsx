@@ -4,6 +4,7 @@
 
 import { useCallback, useState } from "react";
 import { useDropzone } from "react-dropzone";
+import type { DropEvent, FileRejection } from "react-dropzone";
 import { MN } from "../constants/mn";
 
 interface UploadedImage {
@@ -61,13 +62,13 @@ export function ImageUpload({
   const canAddMore = images.length < maxImages;
 
   const onDrop = useCallback(
-    (acceptedFiles: File[], rejectedFiles: { file: File; errors: { message: string }[] }[]) => {
+    (acceptedFiles: File[], fileRejections: FileRejection[], _event: DropEvent) => {
       setDragError(null);
 
       // Handle rejected files
-      if (rejectedFiles.length > 0) {
-        const firstError = rejectedFiles[0].errors[0];
-        if (firstError.message.includes("larger than")) {
+      if (fileRejections.length > 0) {
+        const firstError = fileRejections[0]?.errors[0];
+        if (firstError?.message?.includes("larger than")) {
           setDragError(MN.upload.fileTooLarge);
         } else {
           setDragError(MN.upload.invalidType);

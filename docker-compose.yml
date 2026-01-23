@@ -27,7 +27,7 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    image: risk-assessment/api:latest
+    image: risk-assessment/api:${TAG:-latest}
     container_name: risk-assessment-api
     restart: always
     mem_limit: 512m
@@ -69,7 +69,7 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    image: risk-assessment/frontend:latest
+    image: risk-assessment/frontend:${TAG:-latest}
     container_name: risk-assessment-frontend
     restart: always
     mem_limit: 128m
