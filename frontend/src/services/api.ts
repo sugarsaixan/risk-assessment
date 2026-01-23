@@ -5,7 +5,8 @@ import axios, { AxiosError, AxiosInstance, AxiosRequestConfig } from "axios";
  */
 
 // Base URL from environment or default to localhost
-const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_BASE_URL =
+  import.meta.env["VITE_API_URL"] || "http://localhost:8000";
 
 /**
  * Create configured axios instance for API requests.

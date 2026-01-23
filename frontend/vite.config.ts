@@ -1,26 +1,28 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
+import { defineConfig } from "vitest/config";
+import react from "@vitejs/plugin-react";
+
+declare const process: { env: Record<string, string | undefined> };
 
 // https://vitejs.dev/config/
 export default defineConfig({
   plugins: [react()],
-  base: process.env.VITE_BASE_PATH || '/',
+  base: process.env.VITE_BASE_PATH || "/",
   server: {
     port: 5173,
     proxy: {
-      '/api': {
-        target: 'http://localhost:8000',
+      "/api": {
+        target: "http://localhost:8000",
         changeOrigin: true,
       },
     },
   },
   build: {
-    outDir: 'dist',
+    outDir: "dist",
     sourcemap: true,
   },
   test: {
     globals: true,
-    environment: 'jsdom',
-    setupFiles: ['./tests/setup.ts'],
+    environment: "jsdom",
+    setupFiles: ["./tests/setup.ts"],
   },
-})
+});

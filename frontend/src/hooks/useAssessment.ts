@@ -5,7 +5,7 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { getAssessmentForm, type AssessmentResult } from "../services/assessment";
+import { getAssessmentForm } from "../services/assessment";
 import type { AssessmentForm, SnapshotQuestion } from "../types/api";
 
 export type AssessmentState =

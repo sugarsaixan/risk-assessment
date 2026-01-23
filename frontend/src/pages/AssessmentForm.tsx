@@ -38,11 +38,9 @@ export function AssessmentForm() {
   const [contactErrors, setContactErrors] = useState<Partial<Record<keyof SubmissionContactInput, string>>>({});
 
   const {
-    register,
     handleSubmit,
     watch,
     setValue,
-    formState: { errors },
   } = useForm<FormData>({
     defaultValues: {
       contact: {},
@@ -224,7 +222,7 @@ export function AssessmentForm() {
     }
 
     if (validationErrors.length > 0) {
-      setSubmitError(validationErrors[0]);
+      setSubmitError(validationErrors[0] || null);
       return;
     }
 
@@ -240,12 +238,15 @@ export function AssessmentForm() {
         phone: contact.phone!.trim(),
         position: contact.position!.trim(),
       },
-      answers: allQuestions.map((question) => ({
-        question_id: question.id,
-        selected_option: answers[question.id]?.selected_option || "NO",
-        comment: answers[question.id]?.comment || undefined,
-        attachment_ids: getAttachmentIdsForQuestion(question.id),
-      })),
+      answers: allQuestions.map((question) => {
+        const commentValue = answers[question.id]?.comment?.trim();
+        return {
+          question_id: question.id,
+          selected_option: answers[question.id]?.selected_option || "NO",
+          ...(commentValue ? { comment: commentValue } : {}),
+          attachment_ids: getAttachmentIdsForQuestion(question.id),
+        };
+      }),
     };
 
     const result = await submitAssessment(token, submitData);
@@ -373,6 +374,8 @@ export function AssessmentForm() {
                     const selectedOption = answers[question.id]?.selected_option;
                     const optionConfig = getOptionConfig(question, selectedOption);
                     const validationError = validateAnswer(question.id);
+                    const minCommentToken =
+                      MN.assessment.minCommentLength(0).split(" ")[0] || "";
 
                     return (
                       <QuestionCard
@@ -380,7 +383,7 @@ export function AssessmentForm() {
                         questionId={question.id}
                         text={question.text}
                         questionNumber={questionNumber}
-                        selectedOption={selectedOption}
+                        {...(selectedOption ? { selectedOption } : {})}
                         onSelect={(option) => handleOptionSelect(question.id, option)}
                         yesRequiresComment={question.options.YES.require_comment}
                         yesRequiresImage={question.options.YES.require_image}
@@ -401,11 +404,9 @@ export function AssessmentForm() {
                                 required
                                 minLength={optionConfig.comment_min_len}
                                 maxLength={2000}
-                                error={
-                                  validationError?.includes(MN.assessment.minCommentLength(0).split(" ")[0])
-                                    ? validationError
-                                    : undefined
-                                }
+                                {...(validationError?.includes(minCommentToken)
+                                  ? { error: validationError }
+                                  : {})}
                               />
                             )}
 
@@ -423,11 +424,9 @@ export function AssessmentForm() {
                                 maxImages={optionConfig.max_images}
                                 maxSizeMb={optionConfig.image_max_mb}
                                 isUploading={isUploadingForQuestion(question.id)}
-                                error={
-                                  validationError === MN.assessment.requiredImage
-                                    ? validationError
-                                    : undefined
-                                }
+                                {...(validationError === MN.assessment.requiredImage
+                                  ? { error: validationError }
+                                  : {})}
                               />
                             )}
                           </div>

@@ -70,7 +70,7 @@ export function useUpload({
         id: tempId,
         name: file.name,
         size: file.size,
-        preview,
+        ...(preview ? { preview } : {}),
         progress: 0,
       };
 
@@ -180,7 +180,7 @@ export function useMultiQuestionUpload(token: string) {
         id: tempId,
         name: file.name,
         size: file.size,
-        preview,
+        ...(preview ? { preview } : {}),
         progress: 0,
       };
 
