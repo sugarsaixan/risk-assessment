@@ -272,9 +272,9 @@
 - [x] T097 [P] OpenAPI documentation in backend/src/main.py
 - [x] T098 [P] Request logging exists
 - [x] T099 [P] Health check endpoint in backend/src/api/health.py
-- [ ] T100 [P] Create backend Dockerfile in backend/Dockerfile
-- [ ] T101 [P] Create frontend Dockerfile in frontend/Dockerfile
-- [ ] T102 Update docker-compose.yml with all services
+- [x] T100 [P] Create backend Dockerfile in backend/Dockerfile
+- [x] T101 [P] Create frontend Dockerfile in frontend/Dockerfile
+- [x] T102 Update docker-compose.yml with all services
 - [x] T103 [P] Input sanitization in backend/src/core/validators.py
 - [x] T104 [P] WCAG AA contrast verification in frontend/src/utils/contrast.ts
 - [ ] T105 Run quickstart.md validation

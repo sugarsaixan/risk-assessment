@@ -282,3 +282,5 @@ Test Key
 Scenario 	Use This Command	Result
 Fresh Database	"alembic upgrade head"	Runs all scripts; creates tables and the version tracking table.
 Existing Database	"alembic stamp head"	Does not run scripts; simply tells Alembic the DB is already at the latest version.
+
+--- 
