@@ -13,6 +13,7 @@ from src.models.enums import AssessmentStatus
 
 if TYPE_CHECKING:
     from src.models.respondent import Respondent
+    from src.models.submission_contact import SubmissionContact
 
 
 class Assessment(BaseModel):
@@ -81,6 +82,11 @@ class Assessment(BaseModel):
     respondent: Mapped["Respondent"] = relationship(
         "Respondent",
         back_populates="assessments",
+    )
+    submission_contact: Mapped["SubmissionContact | None"] = relationship(
+        "SubmissionContact",
+        back_populates="assessment",
+        uselist=False,
     )
 
     def __repr__(self) -> str:

@@ -120,11 +120,74 @@ components:
           type: string
           format: date-time
 
-    QuestionCreate:
+    # Question Group schemas
+    QuestionGroupCreate:
       type: object
-      required: [type_id, text]
+      required: [type_id, name]
       properties:
         type_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          maxLength: 200
+          description: Group name (Mongolian)
+        display_order:
+          type: integer
+          minimum: 0
+          default: 0
+        weight:
+          type: number
+          format: float
+          minimum: 0.01
+          default: 1.0
+          description: Weight for type score calculation
+
+    QuestionGroupUpdate:
+      type: object
+      properties:
+        name:
+          type: string
+          maxLength: 200
+        display_order:
+          type: integer
+          minimum: 0
+        weight:
+          type: number
+          format: float
+          minimum: 0.01
+        is_active:
+          type: boolean
+
+    QuestionGroup:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        display_order:
+          type: integer
+        weight:
+          type: number
+        is_active:
+          type: boolean
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+    QuestionCreate:
+      type: object
+      required: [group_id, text]
+      properties:
+        group_id:
           type: string
           format: uuid
         text:
@@ -168,7 +231,7 @@ components:
         id:
           type: string
           format: uuid
-        type_id:
+        group_id:
           type: string
           format: uuid
         text:
@@ -351,13 +414,13 @@ components:
           type: string
           format: date-time
 
-    TypeScore:
+    GroupScore:
       type: object
       properties:
-        type_id:
+        group_id:
           type: string
           format: uuid
-        type_name:
+        group_name:
           type: string
         raw_score:
           type: integer
@@ -368,6 +431,24 @@ components:
           format: float
         risk_rating:
           $ref: '#/components/schemas/RiskRating'
+
+    TypeScore:
+      type: object
+      properties:
+        type_id:
+          type: string
+          format: uuid
+        type_name:
+          type: string
+        percentage:
+          type: number
+          format: float
+        risk_rating:
+          $ref: '#/components/schemas/RiskRating'
+        group_scores:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupScore'
 
     OverallScore:
       type: object
@@ -406,6 +487,24 @@ components:
               storage_key:
                 type: string
 
+    SubmissionContact:
+      type: object
+      properties:
+        last_name:
+          type: string
+          description: Овог
+        first_name:
+          type: string
+          description: Нэр
+        email:
+          type: string
+          format: email
+        phone:
+          type: string
+        position:
+          type: string
+          description: Албан тушаал
+
     AssessmentResults:
       type: object
       properties:
@@ -414,6 +513,9 @@ components:
           format: uuid
         respondent:
           $ref: '#/components/schemas/Respondent'
+        submission_contact:
+          $ref: '#/components/schemas/SubmissionContact'
+          description: Person who filled the form
         status:
           $ref: '#/components/schemas/AssessmentStatus'
         completed_at:
@@ -571,11 +673,11 @@ paths:
         '404':
           description: Type not found
 
-  /questions:
+  /groups:
     get:
-      summary: List questions
-      operationId: listQuestions
-      tags: [Questions]
+      summary: List question groups
+      operationId: listGroups
+      tags: [Question Groups]
       parameters:
         - name: type_id
           in: query
@@ -583,6 +685,115 @@ paths:
             type: string
             format: uuid
           description: Filter by questionnaire type
+        - name: is_active
+          in: query
+          schema:
+            type: boolean
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+      responses:
+        '200':
+          description: List of question groups
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: '#/components/schemas/PaginatedResponse'
+                  - type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/QuestionGroup'
+
+    post:
+      summary: Create question group
+      operationId: createGroup
+      tags: [Question Groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionGroupCreate'
+      responses:
+        '201':
+          description: Group created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionGroup'
+        '400':
+          description: Validation error
+        '404':
+          description: Type not found
+
+  /groups/{group_id}:
+    parameters:
+      - name: group_id
+        in: path
+        required: true
+        schema:
+          type: string
+          format: uuid
+
+    get:
+      summary: Get question group
+      operationId: getGroup
+      tags: [Question Groups]
+      responses:
+        '200':
+          description: Group details
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionGroup'
+        '404':
+          description: Group not found
+
+    patch:
+      summary: Update question group
+      operationId: updateGroup
+      tags: [Question Groups]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuestionGroupUpdate'
+      responses:
+        '200':
+          description: Group updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuestionGroup'
+        '404':
+          description: Group not found
+
+  /questions:
+    get:
+      summary: List questions
+      operationId: listQuestions
+      tags: [Questions]
+      parameters:
+        - name: group_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+          description: Filter by question group
         - name: is_active
           in: query
           schema:
@@ -635,7 +846,7 @@ paths:
         '400':
           description: Validation error
         '404':
-          description: Type not found
+          description: Group not found
 
   /questions/{question_id}:
     parameters:

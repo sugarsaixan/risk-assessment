@@ -1,5 +1,5 @@
 /**
- * Results page displaying type scores and overall score with risk ratings.
+ * Results page displaying type scores with group breakdown and overall score with risk ratings.
  */
 
 import { useLocation, useNavigate, useParams } from "react-router-dom";
@@ -82,7 +82,7 @@ export function Results() {
           />
         </div>
 
-        {/* Type Results */}
+        {/* Type Results with Group Breakdown */}
         {type_results.length > 0 && (
           <div>
             <h2 className="text-lg font-medium mb-4">
@@ -98,6 +98,7 @@ export function Results() {
                   maxScore={result.max_score}
                   percentage={result.percentage}
                   riskRating={result.risk_rating}
+                  groups={result.groups}
                 />
               ))}
             </div>

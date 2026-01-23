@@ -5,66 +5,65 @@
 ## Entity Relationship Diagram
 
 ```
-┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
-│   api_keys      │     │questionnaire_   │     │   questions     │
-├─────────────────┤     │    types        │     ├─────────────────┤
-│ id (PK)         │     ├─────────────────┤     │ id (PK)         │
-│ key_hash        │     │ id (PK)         │     │ type_id (FK)    │──┐
-│ name            │     │ name            │     │ text            │  │
-│ is_active       │     │ scoring_method  │     │ display_order   │  │
-│ created_at      │     │ threshold_high  │     │ weight          │  │
-│ last_used_at    │     │ threshold_medium│     │ is_critical     │  │
-└─────────────────┘     │ weight          │     │ is_active       │  │
-                        │ is_active       │     │ created_at      │  │
-                        │ created_at      │     └─────────────────┘  │
-                        │ updated_at      │              │           │
-                        └─────────────────┘              │           │
-                                 │                       │           │
-                                 │                       ▼           │
-                                 │         ┌─────────────────────┐   │
-                                 │         │  question_options   │   │
-                                 │         ├─────────────────────┤   │
-                                 │         │ id (PK)             │   │
-                                 │         │ question_id (FK)    │───┘
-                                 │         │ option_type (YES/NO)│
-                                 │         │ score               │
-                                 │         │ require_comment     │
-                                 │         │ require_image       │
-                                 │         │ comment_min_len     │
-                                 │         │ max_images          │
-                                 │         │ image_max_mb        │
-                                 │         └─────────────────────┘
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│   api_keys      │     │questionnaire_   │     │question_groups  │     │   questions     │
+├─────────────────┤     │    types        │     ├─────────────────┤     ├─────────────────┤
+│ id (PK)         │     ├─────────────────┤     │ id (PK)         │     │ id (PK)         │
+│ key_hash        │     │ id (PK)         │◄────│ type_id (FK)    │◄────│ group_id (FK)   │──┐
+│ name            │     │ name            │     │ name            │     │ text            │  │
+│ is_active       │     │ threshold_high  │     │ display_order   │     │ display_order   │  │
+│ created_at      │     │ threshold_medium│     │ weight          │     │ weight          │  │
+│ last_used_at    │     │ weight          │     │ is_active       │     │ is_critical     │  │
+└─────────────────┘     │ is_active       │     │ created_at      │     │ is_active       │  │
+                        │ created_at      │     │ updated_at      │     │ created_at      │  │
+                        │ updated_at      │     └─────────────────┘     └─────────────────┘  │
+                        └─────────────────┘                                      │           │
+                                 │                                               │           │
+                                 │                             ┌─────────────────────────┐   │
+                                 │                             │   question_options      │   │
+                                 │                             ├─────────────────────────┤   │
+                                 │                             │ id (PK)                 │   │
+                                 │                             │ question_id (FK)        │───┘
+                                 │                             │ option_type (YES/NO)    │
+                                 │                             │ score                   │
+                                 │                             │ require_comment         │
+                                 │                             │ require_image           │
+                                 │                             │ comment_min_len         │
+                                 │                             │ max_images              │
+                                 │                             │ image_max_mb            │
+                                 │                             └─────────────────────────┘
                                  │
-┌─────────────────┐              │         ┌─────────────────────┐
-│  respondents    │              │         │    assessments      │
-├─────────────────┤              │         ├─────────────────────┤
-│ id (PK)         │◄─────────────┼─────────│ id (PK)             │
-│ kind (ORG/      │              │         │ respondent_id (FK)  │
-│   PERSON)       │              │         │ token_hash          │
-│ name            │              └────────►│ selected_type_ids   │
-│ registration_no │                        │ questions_snapshot  │
-│ created_at      │                        │ expires_at          │
-│ updated_at      │                        │ status              │
-└─────────────────┘                        │ completed_at        │
+┌─────────────────┐              │         ┌─────────────────────┐   ┌───────────────────┐
+│  respondents    │              │         │    assessments      │   │submission_contacts│
+├─────────────────┤              │         ├─────────────────────┤   ├───────────────────┤
+│ id (PK)         │◄─────────────┼─────────│ id (PK)             │──►│ id (PK)           │
+│ kind (ORG/      │              │         │ respondent_id (FK)  │   │ assessment_id(FK) │
+│   PERSON)       │              │         │ contact_id (FK)     │   │ last_name         │
+│ name            │              └────────►│ token_hash          │   │ first_name        │
+│ registration_no │                        │ selected_type_ids   │   │ email             │
+│ created_at      │                        │ questions_snapshot  │   │ phone             │
+│ updated_at      │                        │ expires_at          │   │ position          │
+└─────────────────┘                        │ status              │   │ created_at        │
+                                           │ completed_at        │   └───────────────────┘
                                            │ created_at          │
                                            └─────────────────────┘
                                                     │
-                           ┌────────────────────────┼────────────────────────┐
-                           │                        │                        │
-                           ▼                        ▼                        ▼
-              ┌─────────────────┐     ┌─────────────────────┐   ┌─────────────────┐
-              │    answers      │     │  assessment_scores  │   │   attachments   │
-              ├─────────────────┤     ├─────────────────────┤   ├─────────────────┤
-              │ id (PK)         │     │ id (PK)             │   │ id (PK)         │
-              │ assessment_id   │     │ assessment_id (FK)  │   │ answer_id (FK)  │
-              │ question_id     │     │ type_id             │   │ storage_key     │
-              │ selected_option │     │ raw_score           │   │ original_name   │
-              │ comment         │     │ max_score           │   │ size_bytes      │
-              │ score_awarded   │     │ percentage          │   │ mime_type       │
-              │ created_at      │     │ risk_rating         │   │ created_at      │
-              └─────────────────┘     └─────────────────────┘   └─────────────────┘
-                     │
-                     └──────────────────────────────────────────────────┘
+                       ┌────────────────────────────┼────────────────────────────┐
+                       │                            │                            │
+                       ▼                            ▼                            ▼
+          ┌─────────────────┐     ┌─────────────────────────┐   ┌─────────────────┐
+          │    answers      │     │    assessment_scores    │   │   attachments   │
+          ├─────────────────┤     ├─────────────────────────┤   ├─────────────────┤
+          │ id (PK)         │     │ id (PK)                 │   │ id (PK)         │
+          │ assessment_id   │     │ assessment_id (FK)      │   │ answer_id (FK)  │
+          │ question_id     │     │ type_id (NULL=overall)  │   │ storage_key     │
+          │ selected_option │     │ group_id (NULL=type/ovr)│   │ original_name   │
+          │ comment         │     │ raw_score               │   │ size_bytes      │
+          │ score_awarded   │     │ max_score               │   │ mime_type       │
+          │ created_at      │     │ percentage              │   │ created_at      │
+          └─────────────────┘     │ risk_rating             │   └─────────────────┘
+                 │                └─────────────────────────┘
+                 └──────────────────────────────────────────────────┘
 ```
 
 ## Entity Definitions
@@ -110,16 +109,39 @@ Categories of questions with scoring configuration.
 
 ---
 
-### 3. questions
+### 3. question_groups (Бүлэг)
 
-Individual YES/NO questions within a type.
+Logical groupings of questions within a type.
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
 | id | UUID | PK | Primary key |
 | type_id | UUID | FK → questionnaire_types | Parent type |
-| text | TEXT | NOT NULL | Question text (Mongolian) |
+| name | VARCHAR(200) | NOT NULL | Group name (Mongolian) |
 | display_order | INTEGER | NOT NULL | Order within type |
+| weight | DECIMAL(5,2) | NOT NULL, DEFAULT 1.0 | Weight for type calculation |
+| is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | Available for new assessments |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation timestamp |
+| updated_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Last update timestamp |
+
+**Validation rules**:
+- `display_order` >= 0
+- `weight` > 0
+
+**Indexes**: `(type_id, display_order)` for ordered retrieval, `(type_id, is_active)`
+
+---
+
+### 4. questions
+
+Individual YES/NO questions within a group.
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | UUID | PK | Primary key |
+| group_id | UUID | FK → question_groups | Parent group |
+| text | TEXT | NOT NULL | Question text (Mongolian) |
+| display_order | INTEGER | NOT NULL | Order within group |
 | weight | DECIMAL(5,2) | NOT NULL, DEFAULT 1.0 | Question weight (future use) |
 | is_critical | BOOLEAN | NOT NULL, DEFAULT FALSE | Critical flag (future use) |
 | is_active | BOOLEAN | NOT NULL, DEFAULT TRUE | Available for snapshots |
@@ -129,11 +151,11 @@ Individual YES/NO questions within a type.
 - `display_order` >= 0
 - `text` length <= 2000 characters
 
-**Indexes**: `(type_id, display_order)` for ordered retrieval, `(type_id, is_active)`
+**Indexes**: `(group_id, display_order)` for ordered retrieval, `(group_id, is_active)`
 
 ---
 
-### 4. question_options
+### 5. question_options
 
 Configuration for YES and NO options per question.
 
@@ -160,7 +182,7 @@ Configuration for YES and NO options per question.
 
 ---
 
-### 5. respondents
+### 6. respondents
 
 Organizations or individuals taking assessments.
 
@@ -177,7 +199,31 @@ Organizations or individuals taking assessments.
 
 ---
 
-### 6. assessments
+### 7. submission_contacts (Хариулагч)
+
+Contact information for the person who fills out the assessment.
+
+| Field | Type | Constraints | Description |
+|-------|------|-------------|-------------|
+| id | UUID | PK | Primary key |
+| assessment_id | UUID | FK → assessments, UNIQUE | Parent assessment (1:1) |
+| last_name | VARCHAR(100) | NOT NULL | Овог (Last name) |
+| first_name | VARCHAR(100) | NOT NULL | Нэр (First name) |
+| email | VARCHAR(255) | NOT NULL | Email address |
+| phone | VARCHAR(20) | NOT NULL | Phone number |
+| position | VARCHAR(200) | NOT NULL | Албан тушаал (Position/Title) |
+| created_at | TIMESTAMP | NOT NULL, DEFAULT NOW() | Creation timestamp |
+
+**Validation rules**:
+- `email` must be valid email format
+- `phone` must be valid phone format (Mongolian: 8 digits or +976...)
+- All fields required
+
+**Indexes**: `assessment_id` (unique), `email`
+
+---
+
+### 8. assessments
 
 Assessment instances with question snapshots.
 
@@ -185,6 +231,7 @@ Assessment instances with question snapshots.
 |-------|------|-------------|-------------|
 | id | UUID | PK | Primary key |
 | respondent_id | UUID | FK → respondents | Who is being assessed |
+| contact_id | UUID | FK → submission_contacts, NULL | Who filled the form (after completion) |
 | token_hash | VARCHAR(64) | NOT NULL, UNIQUE | SHA-256 hash of access token |
 | selected_type_ids | UUID[] | NOT NULL | Types included in assessment |
 | questions_snapshot | JSONB | NOT NULL | Deep copy of questions/options |
@@ -199,39 +246,47 @@ Assessment instances with question snapshots.
 
 **Indexes**: `token_hash` (for lookup), `respondent_id`, `status`, `expires_at`
 
-**Snapshot JSONB structure**:
+**Snapshot JSONB structure** (with Type → Group → Question hierarchy):
 ```json
 {
   "types": [
     {
       "id": "uuid",
-      "name": "Type Name",
+      "name": "Галын аюулгүй байдал",
       "threshold_high": 80,
       "threshold_medium": 50,
       "weight": 1.0,
-      "questions": [
+      "groups": [
         {
           "id": "uuid",
-          "text": "Question text",
+          "name": "Галын хор",
           "display_order": 1,
-          "options": {
-            "YES": {
-              "score": 10,
-              "require_comment": false,
-              "require_image": false,
-              "comment_min_len": 0,
-              "max_images": 3,
-              "image_max_mb": 5
-            },
-            "NO": {
-              "score": 0,
-              "require_comment": true,
-              "require_image": true,
-              "comment_min_len": 50,
-              "max_images": 3,
-              "image_max_mb": 5
+          "weight": 1.0,
+          "questions": [
+            {
+              "id": "uuid",
+              "text": "Question text",
+              "display_order": 1,
+              "options": {
+                "YES": {
+                  "score": 10,
+                  "require_comment": false,
+                  "require_image": false,
+                  "comment_min_len": 0,
+                  "max_images": 3,
+                  "image_max_mb": 5
+                },
+                "NO": {
+                  "score": 0,
+                  "require_comment": true,
+                  "require_image": true,
+                  "comment_min_len": 50,
+                  "max_images": 3,
+                  "image_max_mb": 5
+                }
+              }
             }
-          }
+          ]
         }
       ]
     }
@@ -241,7 +296,7 @@ Assessment instances with question snapshots.
 
 ---
 
-### 7. answers
+### 9. answers
 
 Respondent's answers to assessment questions.
 
@@ -265,31 +320,37 @@ Respondent's answers to assessment questions.
 
 ---
 
-### 8. assessment_scores
+### 10. assessment_scores
 
-Calculated scores per type and overall.
+Calculated scores per group, type, and overall.
 
 | Field | Type | Constraints | Description |
 |-------|------|-------------|-------------|
 | id | UUID | PK | Primary key |
 | assessment_id | UUID | FK → assessments | Parent assessment |
 | type_id | UUID | NULL | NULL = overall score |
+| group_id | UUID | NULL | NULL = type or overall score |
 | raw_score | INTEGER | NOT NULL | Sum of awarded scores |
 | max_score | INTEGER | NOT NULL | Maximum possible score |
-| percentage | DECIMAL(5,2) | NOT NULL | (raw/max) * 100 |
+| percentage | DECIMAL(5,2) | NOT NULL | Calculated percentage |
 | risk_rating | ENUM | NOT NULL | LOW/MEDIUM/HIGH |
+
+**Score Level Logic**:
+- `group_id` NOT NULL, `type_id` NOT NULL: Group-level score
+- `group_id` NULL, `type_id` NOT NULL: Type-level score (weighted avg of groups)
+- `group_id` NULL, `type_id` NULL: Overall score (weighted avg of types)
 
 **Validation rules**:
 - `raw_score` >= 0 and <= `max_score`
 - `percentage` >= 0 and <= 100
 
-**Unique constraint**: `(assessment_id, type_id)`
+**Unique constraint**: `(assessment_id, type_id, group_id)`
 
 **Indexes**: `assessment_id`
 
 ---
 
-### 9. attachments
+### 11. attachments
 
 Image files uploaded with answers.
 
@@ -348,32 +409,52 @@ CREATE TYPE risk_rating AS ENUM ('LOW', 'MEDIUM', 'HIGH');
 
 ---
 
-## Scoring Calculation Logic
+## Scoring Calculation Logic (Backend Only)
 
-### Type Score (SUM method)
+**Note**: All scoring calculations are performed on the backend. Frontend displays results only.
+
+### 1. Group Score (Questions → Group)
 
 ```
-raw_score = Σ(answer.score_awarded) for all questions in type
-max_score = Σ(max(yes_score, no_score)) for all questions in type
-percentage = (raw_score / max_score) * 100
+group_raw = Σ(answer.score_awarded) for all questions in group
+group_max = Σ(max(yes_score, no_score)) for all questions in group
 
-if max_score == 0:
-    percentage = 0  # Handle edge case
-
-if percentage >= threshold_high:
-    risk_rating = LOW
-elif percentage >= threshold_medium:
-    risk_rating = MEDIUM
+if group_max == 0:
+    group_percentage = 0  # Handle edge case
 else:
-    risk_rating = HIGH
+    group_percentage = (group_raw / group_max) * 100
 ```
 
-### Overall Score
+### 2. Type Score (Groups → Type)
 
 ```
+# Weighted average of group percentages
+type_percentage = Σ(group_percentage * group_weight) / Σ(group_weight)
+
+if Σ(group_weight) == 0:
+    type_percentage = 0  # Handle edge case
+```
+
+### 3. Overall Score (Types → Overall)
+
+```
+# Weighted average of type percentages
 overall_percentage = Σ(type_percentage * type_weight) / Σ(type_weight)
 
-Apply same threshold logic for overall risk_rating
+if Σ(type_weight) == 0:
+    overall_percentage = 0  # Handle edge case
+```
+
+### 4. Risk Rating Assignment
+
+```
+# Applied at group, type, and overall levels
+if percentage >= threshold_high (default 80):
+    risk_rating = LOW ("Бага эрсдэл")
+elif percentage >= threshold_medium (default 50):
+    risk_rating = MEDIUM ("Дунд эрсдэл")
+else:
+    risk_rating = HIGH ("Өндөр эрсдэл")
 ```
 
 ---

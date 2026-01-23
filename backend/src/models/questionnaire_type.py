@@ -11,6 +11,7 @@ from src.models.enums import ScoringMethod
 
 if TYPE_CHECKING:
     from src.models.question import Question
+    from src.models.question_group import QuestionGroup
 
 
 class QuestionnaireType(BaseModelWithTimestamps):
@@ -69,6 +70,13 @@ class QuestionnaireType(BaseModelWithTimestamps):
     )
 
     # Relationships
+    groups: Mapped[list["QuestionGroup"]] = relationship(
+        "QuestionGroup",
+        back_populates="questionnaire_type",
+        cascade="all, delete-orphan",
+        order_by="QuestionGroup.display_order",
+    )
+    # Legacy: direct questions relationship (for migration compatibility)
     questions: Mapped[list["Question"]] = relationship(
         "Question",
         back_populates="questionnaire_type",

@@ -60,6 +60,10 @@ Public endpoints are rate-limited and accessed via one-time tokens.
             "description": "Questionnaire type management (Admin)",
         },
         {
+            "name": "question-groups",
+            "description": "Question group management (Admin)",
+        },
+        {
             "name": "questions",
             "description": "Question and option management (Admin)",
         },

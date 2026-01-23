@@ -1,5 +1,6 @@
 /**
  * QuestionCard component with YES/NO buttons ("Тийм" / "Үгүй").
+ * Renders within group context in hierarchical structure.
  */
 
 import { MN } from "../constants/mn";
@@ -24,6 +25,8 @@ interface QuestionCardProps {
   noRequiresComment?: boolean;
   /** Whether image is required for NO option */
   noRequiresImage?: boolean;
+  /** Whether the question is critical */
+  isCritical?: boolean;
   /** Optional CSS class names */
   className?: string;
   /** Child elements (for conditional fields) */
@@ -40,6 +43,7 @@ export function QuestionCard({
   yesRequiresImage = false,
   noRequiresComment = false,
   noRequiresImage = false,
+  isCritical = false,
   className = "",
   children,
 }: QuestionCardProps) {
@@ -63,7 +67,14 @@ export function QuestionCard({
         <span className="inline-flex items-center justify-center w-7 h-7 text-xs font-medium rounded-md border border-[var(--border)] bg-[var(--surface-elevated)] text-[var(--foreground)]">
           {questionNumber}
         </span>
-        <p className="text-base text-[var(--foreground)] leading-relaxed">{text}</p>
+        <div className="flex-1">
+          <p className="text-base text-[var(--foreground)] leading-relaxed">{text}</p>
+          {isCritical && (
+            <span className="inline-flex items-center mt-1 px-2 py-0.5 text-xs font-medium rounded bg-red-500/10 text-red-400 border border-red-500/20">
+              Чухал асуулт
+            </span>
+          )}
+        </div>
       </div>
 
       {/* YES/NO buttons */}

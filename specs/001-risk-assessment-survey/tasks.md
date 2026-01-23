@@ -1,4 +1,4 @@
-# Tasks: Risk Assessment Survey System
+# Tasks: Risk Assessment Survey System (Updated)
 
 **Input**: Design documents from `/specs/001-risk-assessment-survey/`
 **Prerequisites**: plan.md, spec.md, research.md, data-model.md, contracts/
@@ -6,6 +6,8 @@
 **Tests**: Not explicitly requested in spec. Tests are omitted.
 
 **Organization**: Tasks are grouped by user story to enable independent implementation and testing of each story.
+
+**Note**: Main branch UI has been merged. This update adds Question Groups (Бүлэг) and Submission Contact (Хариулагч) entities.
 
 ## Format: `[ID] [P?] [Story] Description`
 
@@ -19,208 +21,217 @@
 
 ---
 
-## Phase 1: Setup (Shared Infrastructure)
+## Phase 1: Setup (Shared Infrastructure) ✅ COMPLETE
 
 **Purpose**: Project initialization and basic structure
 
 - [x] T001 Create backend directory structure per plan.md in backend/
 - [x] T002 Create frontend directory structure per plan.md in frontend/
-- [x] T003 [P] Initialize Python project with pyproject.toml including FastAPI, SQLAlchemy, Pydantic, passlib, argon2-cffi, slowapi, aioboto3, python-magic, alembic, asyncpg, pytest, httpx in backend/pyproject.toml
-- [x] T004 [P] Initialize React project with Vite, TypeScript, TailwindCSS, react-hook-form, zod, react-router-dom, react-dropzone, axios in frontend/package.json
+- [x] T003 [P] Initialize Python project with FastAPI, SQLAlchemy, Pydantic in backend/pyproject.toml
+- [x] T004 [P] Initialize React project with Vite, TypeScript, TailwindCSS in frontend/package.json
 - [x] T005 [P] Configure Python linting (ruff) and formatting in backend/pyproject.toml
-- [x] T006 [P] Configure TypeScript strict mode and ESLint in frontend/tsconfig.json and frontend/.eslintrc.cjs
+- [x] T006 [P] Configure TypeScript strict mode and ESLint in frontend/tsconfig.json
 - [x] T007 Create docker-compose.yml with PostgreSQL and MinIO services at project root
-- [x] T008 [P] Configure TailwindCSS with dark mode and Noto Sans font in frontend/tailwind.config.js
+- [x] T008 [P] Configure TailwindCSS with dark mode in frontend/tailwind.config.js
 - [x] T009 [P] Create backend environment configuration loader in backend/src/core/config.py
 
-**Checkpoint**: Project skeleton ready, dependencies installed
+**Checkpoint**: Project skeleton ready, dependencies installed ✅
 
 ---
 
-## Phase 2: Foundational (Blocking Prerequisites)
+## Phase 2: Foundational (Blocking Prerequisites) ✅ COMPLETE
 
 **Purpose**: Core infrastructure that MUST be complete before ANY user story can be implemented
 
-**⚠️ CRITICAL**: No user story work can begin until this phase is complete
-
 - [x] T010 Create SQLAlchemy async engine and session factory in backend/src/core/database.py
 - [x] T011 Initialize Alembic with async support in backend/alembic/
-- [x] T012 [P] Create database enum types (ScoringMethod, RespondentKind, OptionType, AssessmentStatus, RiskRating) in backend/src/models/enums.py
-- [x] T013 [P] Create base SQLAlchemy model with UUID primary key and timestamps in backend/src/models/base.py
-- [x] T014 Create ApiKey model with key_hash, name, is_active, last_used_at in backend/src/models/api_key.py
-- [x] T015 Create initial Alembic migration for api_keys table in backend/alembic/versions/
-- [x] T016 Implement API key authentication dependency using APIKeyHeader and Argon2 verification in backend/src/core/auth.py
-- [x] T017 [P] Create FastAPI app instance with CORS and error handlers in backend/src/main.py
-- [x] T018 [P] Configure slowapi rate limiter (30 req/min/IP) for public endpoints in backend/src/core/rate_limit.py
-- [x] T019 [P] Create S3/MinIO client configuration and upload helper in backend/src/core/storage.py
-- [x] T020 [P] Create base Pydantic schemas (PaginatedResponse, Error) in backend/src/schemas/common.py
-- [x] T021 [P] Create CLI command to generate and hash API keys in backend/src/cli.py
-- [x] T022 [P] Create React app entry point with router setup in frontend/src/main.tsx
-- [x] T023 [P] Create API client service with axios instance in frontend/src/services/api.ts
-- [x] T024 [P] Create TypeScript type definitions from API contracts in frontend/src/types/api.ts
+- [x] T012 [P] Create database enum types in backend/src/models/enums.py
+- [x] T013 [P] Create base SQLAlchemy model with UUID primary key in backend/src/models/base.py
+- [x] T014 Create ApiKey model in backend/src/models/api_key.py
+- [x] T015 Create initial Alembic migration for api_keys table
+- [x] T016 Implement API key authentication in backend/src/core/auth.py
+- [x] T017 [P] Create FastAPI app instance in backend/src/main.py
+- [x] T018 [P] Configure slowapi rate limiter in backend/src/core/rate_limit.py
+- [x] T019 [P] Create S3/MinIO client in backend/src/core/storage.py
+- [x] T020 [P] Create base Pydantic schemas in backend/src/schemas/common.py
+- [x] T021 [P] Create CLI command to generate API keys in backend/src/cli.py
+- [x] T022 [P] Create React app entry point in frontend/src/main.tsx
+- [x] T023 [P] Create API client service in frontend/src/services/api.ts
+- [x] T024 [P] Create TypeScript type definitions in frontend/src/types/api.ts
 
-**Checkpoint**: Foundation ready - database connected, auth working, storage configured
+**Checkpoint**: Foundation ready ✅
 
 ---
 
 ## Phase 3: User Story 1 - Admin Creates Assessment Link (Priority: P1) 🎯 MVP
 
-**Goal**: Admin can create questionnaire types, questions with options, respondents, and generate one-time assessment links with question snapshots
+**Goal**: Admin can create questionnaire types, groups, questions with options, respondents, and generate one-time assessment links
 
-**Independent Test**: Call Admin API to create type → questions → options → respondent → assessment. Verify returned URL contains valid token format.
+**Independent Test**: Call Admin API to create type → group → questions → options → respondent → assessment. Verify returned URL contains valid token format.
 
 ### Implementation for User Story 1
 
-#### Models
+#### Backend Models (Existing + New)
 
-- [x] T025 [P] [US1] Create QuestionnaireType model (name, scoring_method, thresholds, weight, is_active) in backend/src/models/questionnaire_type.py
-- [x] T026 [P] [US1] Create Question model (type_id, text, display_order, weight, is_critical, is_active) in backend/src/models/question.py
-- [x] T027 [P] [US1] Create QuestionOption model (question_id, option_type, score, require_comment, require_image, comment_min_len, max_images, image_max_mb) in backend/src/models/question_option.py
-- [x] T028 [P] [US1] Create Respondent model (kind, name, registration_no) in backend/src/models/respondent.py
-- [x] T029 [P] [US1] Create Assessment model (respondent_id, token_hash, selected_type_ids, questions_snapshot, expires_at, status, completed_at) in backend/src/models/assessment.py
-- [x] T030 [US1] Create Alembic migration for questionnaire_types, questions, question_options, respondents, assessments tables in backend/alembic/versions/
-- [x] T031 [US1] Export all models in backend/src/models/__init__.py
+- [x] T025 [P] [US1] Create QuestionnaireType model in backend/src/models/questionnaire_type.py
+- [x] T025a [P] [US1] **NEW**: Create QuestionGroup model (type_id, name, display_order, weight, is_active) in backend/src/models/question_group.py
+- [x] T026 [P] [US1] Update Question model to reference group_id instead of type_id in backend/src/models/question.py
+- [x] T027 [P] [US1] Create QuestionOption model in backend/src/models/question_option.py
+- [x] T028 [P] [US1] Create Respondent model in backend/src/models/respondent.py
+- [x] T029 [P] [US1] Update Assessment model to include groups in snapshot in backend/src/models/assessment.py
+- [x] T030a [US1] **NEW**: Create Alembic migration to add question_groups table in backend/alembic/versions/
+- [x] T030b [US1] **NEW**: Create Alembic migration to change questions.type_id → questions.group_id in backend/alembic/versions/
+- [x] T031a [US1] Export QuestionGroup model in backend/src/models/__init__.py
 
-#### Schemas
+#### Backend Schemas (Existing + New)
 
-- [x] T032 [P] [US1] Create QuestionnaireType Pydantic schemas (Create, Update, Response) in backend/src/schemas/questionnaire_type.py
-- [x] T033 [P] [US1] Create Question Pydantic schemas (Create, Update, Response) in backend/src/schemas/question.py
-- [x] T034 [P] [US1] Create QuestionOption Pydantic schemas (Config, Response) in backend/src/schemas/question_option.py
-- [x] T035 [P] [US1] Create Respondent Pydantic schemas (Create, Update, Response) in backend/src/schemas/respondent.py
-- [x] T036 [P] [US1] Create Assessment Pydantic schemas (Create, Created, Response) in backend/src/schemas/assessment.py
+- [x] T032 [P] [US1] Create QuestionnaireType Pydantic schemas in backend/src/schemas/questionnaire_type.py
+- [x] T032a [P] [US1] **NEW**: Create QuestionGroup Pydantic schemas (Create, Update, Response) in backend/src/schemas/question_group.py
+- [x] T033a [P] [US1] Update Question schemas to use group_id in backend/src/schemas/question.py
+- [x] T034 [P] [US1] Create QuestionOption Pydantic schemas in backend/src/schemas/question_option.py
+- [x] T035 [P] [US1] Create Respondent Pydantic schemas in backend/src/schemas/respondent.py
+- [x] T036 [P] [US1] Update Assessment schemas to include groups in snapshot in backend/src/schemas/assessment.py
 
-#### Repositories
+#### Backend Repositories (Existing + New)
 
-- [x] T037 [P] [US1] Create QuestionnaireTypeRepository with CRUD operations in backend/src/repositories/questionnaire_type.py
-- [x] T038 [P] [US1] Create QuestionRepository with CRUD and list-by-type operations in backend/src/repositories/question.py
-- [x] T039 [P] [US1] Create QuestionOptionRepository with set-options operation in backend/src/repositories/question_option.py
-- [x] T040 [P] [US1] Create RespondentRepository with CRUD and search operations in backend/src/repositories/respondent.py
-- [x] T041 [P] [US1] Create AssessmentRepository with create and find-by-token operations in backend/src/repositories/assessment.py
+- [x] T037 [P] [US1] Create QuestionnaireTypeRepository in backend/src/repositories/questionnaire_type.py
+- [x] T037a [P] [US1] **NEW**: Create QuestionGroupRepository with CRUD and list-by-type in backend/src/repositories/question_group.py
+- [x] T038a [P] [US1] Update QuestionRepository to filter by group_id in backend/src/repositories/question.py
+- [x] T039 [P] [US1] Create QuestionOptionRepository in backend/src/repositories/question_option.py
+- [x] T040 [P] [US1] Create RespondentRepository in backend/src/repositories/respondent.py
+- [x] T041 [P] [US1] Create AssessmentRepository in backend/src/repositories/assessment.py
 
-#### Services
+#### Backend Services
 
-- [x] T042 [US1] Implement SnapshotService to deep copy questions/options for assessment creation in backend/src/services/snapshot.py
-- [x] T043 [US1] Implement TokenService to generate secure tokens and SHA-256 hashes in backend/src/services/token.py
-- [x] T044 [US1] Implement AssessmentService (create assessment with snapshot, generate public URL) in backend/src/services/assessment.py
+- [x] T042a [US1] Update SnapshotService to include groups in Type → Group → Question hierarchy in backend/src/services/snapshot.py
+- [x] T043 [US1] Implement TokenService in backend/src/services/token.py
+- [x] T044 [US1] Implement AssessmentService in backend/src/services/assessment.py
 
-#### API Routes
+#### Backend API Routes (Existing + New)
 
 - [x] T045 [US1] Create Admin API router structure in backend/src/api/admin/__init__.py
-- [x] T046 [P] [US1] Implement POST/GET/PATCH /types endpoints in backend/src/api/admin/types.py
-- [x] T047 [P] [US1] Implement POST/GET/PATCH /questions and PUT /questions/{id}/options endpoints in backend/src/api/admin/questions.py
-- [x] T048 [P] [US1] Implement POST/GET/PATCH /respondents endpoints in backend/src/api/admin/respondents.py
-- [x] T049 [US1] Implement POST/GET /assessments endpoints in backend/src/api/admin/assessments.py
-- [x] T050 [US1] Register all admin routes with auth dependency in backend/src/main.py
+- [x] T046 [P] [US1] Implement /types endpoints in backend/src/api/admin/types.py
+- [x] T046a [P] [US1] **NEW**: Implement POST/GET/PATCH /groups endpoints in backend/src/api/admin/groups.py
+- [x] T047a [P] [US1] Update /questions endpoints to use group_id filter in backend/src/api/admin/questions.py
+- [x] T048 [P] [US1] Implement /respondents endpoints in backend/src/api/admin/respondents.py
+- [x] T049 [US1] Implement /assessments endpoints in backend/src/api/admin/assessments.py
+- [x] T050a [US1] Register groups routes in backend/src/main.py
 
-**Checkpoint**: Admin can configure questionnaire and generate assessment links via API
+**Checkpoint**: Admin can configure questionnaire hierarchy and generate assessment links via API
 
 ---
 
 ## Phase 4: User Story 2 - Respondent Completes Assessment (Priority: P1) 🎯 MVP
 
-**Goal**: Respondent accesses link, sees form in Mongolian Cyrillic, answers YES/NO questions with conditional comments/images, submits, and sees results
+**Goal**: Respondent accesses link, sees form with Type→Group→Question hierarchy, answers YES/NO questions, enters contact info, submits, and sees hierarchical results
 
-**Independent Test**: Access valid assessment URL, complete all questions with required fields, submit. Verify results page shows correct scores in Mongolian.
+**Independent Test**: Access valid assessment URL, complete all questions, enter contact info (Овог, Нэр, email, phone, Албан тушаал), submit. Verify results page shows per-group, per-type, and overall scores.
 
 ### Backend Implementation for User Story 2
 
-#### Models
+#### Backend Models (Existing + New)
 
-- [x] T051 [P] [US2] Create Answer model (assessment_id, question_id, selected_option, comment, score_awarded) in backend/src/models/answer.py
-- [x] T052 [P] [US2] Create Attachment model (answer_id, storage_key, original_name, size_bytes, mime_type) in backend/src/models/attachment.py
-- [x] T053 [P] [US2] Create AssessmentScore model (assessment_id, type_id, raw_score, max_score, percentage, risk_rating) in backend/src/models/assessment_score.py
-- [x] T054 [US2] Create Alembic migration for answers, attachments, assessment_scores tables in backend/alembic/versions/
+- [x] T051 [P] [US2] Create Answer model in backend/src/models/answer.py
+- [x] T052 [P] [US2] Create Attachment model in backend/src/models/attachment.py
+- [x] T053a [P] [US2] Update AssessmentScore model to include group_id for group-level scores in backend/src/models/assessment_score.py
+- [x] T053b [P] [US2] **NEW**: Create SubmissionContact model (assessment_id, last_name, first_name, email, phone, position) in backend/src/models/submission_contact.py
+- [x] T054a [US2] Create Alembic migration for submission_contacts table in backend/alembic/versions/
+- [x] T054b [US2] Create Alembic migration to add group_id to assessment_scores table in backend/alembic/versions/
 
-#### Schemas
+#### Backend Schemas (Existing + New)
 
-- [x] T055 [P] [US2] Create Answer Pydantic schemas (Input, Response) in backend/src/schemas/answer.py
-- [x] T056 [P] [US2] Create Attachment Pydantic schemas (Upload, Response) in backend/src/schemas/attachment.py
-- [x] T057 [P] [US2] Create public API schemas (AssessmentForm, SubmitRequest, SubmitResponse, TypeResult, OverallResult, ErrorResponse) in backend/src/schemas/public.py
+- [x] T055 [P] [US2] Create Answer Pydantic schemas in backend/src/schemas/answer.py
+- [x] T056 [P] [US2] Create Attachment Pydantic schemas in backend/src/schemas/attachment.py
+- [x] T057a [P] [US2] **NEW**: Create SubmissionContact Pydantic schemas (Input, Response) in backend/src/schemas/submission_contact.py
+- [x] T057b [P] [US2] Update public API schemas to include contact input and group results in backend/src/schemas/public.py
 
-#### Services
+#### Backend Services
 
-- [x] T058 [US2] Implement ScoringService with type score and overall score calculation logic in backend/src/services/scoring.py
-- [x] T059 [US2] Implement SubmissionService (validate answers, check required fields, save answers, calculate scores) in backend/src/services/submission.py
-- [x] T060 [US2] Implement UploadService (validate image type/size, upload to S3, create attachment record) in backend/src/services/upload.py
+- [x] T058a [US2] **UPDATE**: Implement hierarchical ScoringService (Question→Group→Type→Overall) in backend/src/services/scoring.py
+- [x] T059a [US2] Update SubmissionService to save submission contact and calculate group scores in backend/src/services/submission.py
+- [x] T060 [US2] Implement UploadService in backend/src/services/upload.py
 
-#### API Routes
+#### Backend API Routes
 
 - [x] T061 [US2] Create Public API router structure in backend/src/api/public/__init__.py
-- [x] T062 [US2] Implement GET /a/{token} endpoint (return form data or error status) with rate limiting in backend/src/api/public/assessment.py
-- [x] T063 [US2] Implement POST /a/{token}/upload endpoint (handle multipart image upload) with rate limiting in backend/src/api/public/assessment.py
-- [x] T064 [US2] Implement POST /a/{token}/submit endpoint (validate, score, return results) with rate limiting in backend/src/api/public/assessment.py
+- [x] T062a [US2] Update GET /a/{token} to return Type→Group→Question hierarchy in backend/src/api/public/assessment.py
+- [x] T063 [US2] Implement POST /a/{token}/upload endpoint in backend/src/api/public/assessment.py
+- [x] T064a [US2] Update POST /a/{token}/submit to require contact info and return group scores in backend/src/api/public/assessment.py
 - [x] T065 [US2] Register public routes in backend/src/main.py
 
-### Frontend Implementation for User Story 2
+### Frontend Implementation for User Story 2 (UI from main branch)
 
-#### Core Setup
+#### Frontend Types and Schemas
 
-- [x] T066 [P] [US2] Create Mongolian string constants file in frontend/src/constants/mn.ts
-- [x] T067 [P] [US2] Create Zod validation schemas for form data in frontend/src/schemas/assessment.ts
+- [x] T066a [P] [US2] Update TypeScript types to include QuestionGroup and SubmissionContact in frontend/src/types/api.ts
+- [x] T067a [P] [US2] Update Zod schemas to include contact validation in frontend/src/schemas/assessment.ts
 
-#### Components
+#### Frontend Components (Update existing)
 
-- [x] T068 [P] [US2] Create ProgressBar component showing "X / Y асуулт" in frontend/src/components/ProgressBar.tsx
-- [x] T069 [P] [US2] Create QuestionCard component with YES/NO buttons ("Тийм" / "Үгүй") in frontend/src/components/QuestionCard.tsx
-- [x] T070 [P] [US2] Create CommentField component with character counter (max 2000) in frontend/src/components/CommentField.tsx
-- [x] T071 [P] [US2] Create ImageUpload component with drag-drop, preview, and progress in frontend/src/components/ImageUpload.tsx
-- [x] T072 [P] [US2] Create TypeScoreCard component for displaying per-type results in frontend/src/components/TypeScoreCard.tsx
-- [x] T073 [P] [US2] Create OverallScoreCard component for displaying overall result in frontend/src/components/OverallScoreCard.tsx
+- [x] T068 [P] [US2] ProgressBar component exists in frontend/src/components/ProgressBar.tsx
+- [x] T069a [P] [US2] Update QuestionCard to render within group context in frontend/src/components/QuestionCard.tsx
+- [x] T070 [P] [US2] CommentField component exists in frontend/src/components/CommentField.tsx
+- [x] T071 [P] [US2] ImageUpload component exists in frontend/src/components/ImageUpload.tsx
+- [x] T072a [P] [US2] Update TypeScoreCard to show group scores within type in frontend/src/components/TypeScoreCard.tsx
+- [x] T073 [P] [US2] OverallScoreCard component exists in frontend/src/components/OverallScoreCard.tsx
+- [x] T073a [P] [US2] **NEW**: Create ContactForm component for submission contact info in frontend/src/components/ContactForm.tsx
 
-#### Pages
+#### Frontend Pages (Update existing)
 
-- [x] T074 [US2] Create AssessmentForm page with react-hook-form, conditional fields, validation in frontend/src/pages/AssessmentForm.tsx
-- [x] T075 [US2] Create Results page displaying type scores and overall score with risk ratings in frontend/src/pages/Results.tsx
-- [x] T076 [P] [US2] Create ExpiredLink page showing "Линкний хугацаа дууссан байна." in frontend/src/pages/ExpiredLink.tsx
-- [x] T077 [P] [US2] Create UsedLink page showing "Энэ линк аль хэдийн ашиглагдсан байна." in frontend/src/pages/UsedLink.tsx
-- [x] T078 [P] [US2] Create NotFound page for invalid tokens in frontend/src/pages/NotFound.tsx
+- [x] T074a [US2] Update AssessmentForm to display Type→Group→Question hierarchy and include ContactForm in frontend/src/pages/AssessmentForm.tsx
+- [x] T075a [US2] Update Results page to display group scores within types in frontend/src/pages/Results.tsx
+- [x] T076 [P] [US2] ExpiredLink page exists in frontend/src/pages/ExpiredLink.tsx
+- [x] T077 [P] [US2] UsedLink page exists in frontend/src/pages/UsedLink.tsx
+- [x] T078 [P] [US2] NotFound page exists in frontend/src/pages/NotFound.tsx
 
-#### Hooks and Services
+#### Frontend Hooks and Services
 
-- [x] T079 [US2] Create useAssessment hook to fetch form data and handle loading/error states in frontend/src/hooks/useAssessment.ts
-- [x] T080 [US2] Create useUpload hook to handle image upload with progress tracking in frontend/src/hooks/useUpload.ts
-- [x] T081 [US2] Create assessment API service (getForm, uploadImage, submit) in frontend/src/services/assessment.ts
+- [x] T079a [US2] Update useAssessment hook to handle hierarchical data in frontend/src/hooks/useAssessment.ts
+- [x] T080 [US2] useUpload hook exists in frontend/src/hooks/useUpload.ts
+- [x] T081a [US2] Update assessment service to include contact in submit request in frontend/src/services/assessment.ts
 
-#### Routing
+#### Frontend Routing (Existing)
 
-- [x] T082 [US2] Configure routes for /a/:token (form), /a/:token/results, error pages in frontend/src/App.tsx
+- [x] T082 [US2] Routes configured in frontend/src/App.tsx
 
-#### Styling
+#### Frontend Styling (Existing)
 
-- [x] T083 [US2] Apply mobile-first responsive styles to all components in frontend/src/index.css
-- [x] T084 [US2] Implement dark/light mode toggle with system preference detection in frontend/src/hooks/useTheme.ts
+- [x] T083 [US2] Mobile-first responsive styles in frontend/src/index.css
+- [x] T084 [US2] Dark/light mode toggle in frontend/src/hooks/useTheme.tsx
 
-**Checkpoint**: Full respondent flow works - access link, complete form, see results
+**Checkpoint**: Full respondent flow works with hierarchical display and contact collection
 
 ---
 
-## Phase 5: User Story 3 - Admin Configures Questionnaire Types (Priority: P2)
+## Phase 5: User Story 3 - Admin Configures Questionnaire Types and Groups (Priority: P2)
 
-**Goal**: Admin can create, update, and deactivate questionnaire types with full CRUD operations
+**Goal**: Admin can create, update, and deactivate questionnaire types and groups with full CRUD
 
-**Independent Test**: Create type via API, update thresholds, deactivate it. Verify type is excluded from new assessments but historical data intact.
+**Independent Test**: Create type via API, add groups to type, update weights, deactivate group. Verify excluded from new assessments.
 
 ### Implementation for User Story 3
 
-- [x] T085 [US3] Add list types endpoint with pagination and is_active filter in backend/src/api/admin/types.py
-- [x] T086 [US3] Add get single type endpoint in backend/src/api/admin/types.py
-- [x] T087 [US3] Ensure deactivated types are excluded from assessment creation validation in backend/src/services/assessment.py
+- [x] T085 [US3] List types endpoint with pagination exists in backend/src/api/admin/types.py
+- [x] T086 [US3] Get single type endpoint exists in backend/src/api/admin/types.py
+- [x] T086a [US3] **NEW**: Add list groups by type_id endpoint in backend/src/api/admin/groups.py
+- [x] T086b [US3] **NEW**: Add get/update/deactivate group endpoints in backend/src/api/admin/groups.py
+- [x] T087a [US3] Ensure deactivated groups are excluded from snapshots in backend/src/services/snapshot.py
 
-**Checkpoint**: Full questionnaire type management available via API
+**Checkpoint**: Full type and group management available via API
 
 ---
 
 ## Phase 6: User Story 4 - Admin Configures Questions and Options (Priority: P2)
 
-**Goal**: Admin can create questions with YES/NO options, configure conditional requirements
+**Goal**: Admin can create questions within groups with YES/NO options
 
-**Independent Test**: Create question with options where NO requires comment (min 50 chars) and image. Verify conditional fields appear in public form.
+**Independent Test**: Create question within group, configure options. Verify conditional fields appear in public form.
 
 ### Implementation for User Story 4
 
-- [x] T088 [US4] Add list questions endpoint with pagination and type_id filter in backend/src/api/admin/questions.py
-- [x] T089 [US4] Add get single question endpoint including options in backend/src/api/admin/questions.py
-- [x] T090 [US4] Add validation for option configurations (exactly YES and NO required) in backend/src/schemas/question_option.py
+- [x] T088a [US4] Update list questions to filter by group_id in backend/src/api/admin/questions.py
+- [x] T089 [US4] Get single question endpoint exists in backend/src/api/admin/questions.py
+- [x] T090 [US4] Option validation exists in backend/src/schemas/question_option.py
 
 **Checkpoint**: Full question and option configuration available via API
 
@@ -228,33 +239,29 @@
 
 ## Phase 7: User Story 5 - Admin Retrieves Assessment Results (Priority: P2)
 
-**Goal**: Admin can retrieve assessment results with per-type scores, overall score, and optional answer breakdown
+**Goal**: Admin can retrieve assessment results with per-group, per-type scores, overall score, contact info, and optional breakdown
 
-**Independent Test**: Complete an assessment, fetch results via API with breakdown=true. Verify all scores, ratings, and answer details returned.
+**Independent Test**: Complete assessment, fetch results via API. Verify group scores, type scores, overall score, and contact info returned.
 
 ### Implementation for User Story 5
 
-- [x] T091 [US5] Create AssessmentResults Pydantic schema with TypeScore, OverallScore, AnswerBreakdown in backend/src/schemas/results.py
-- [x] T092 [US5] Implement ResultsService to format scores and optionally include answer breakdown in backend/src/services/results.py
-- [x] T093 [US5] Implement GET /assessments/{id}/results endpoint with breakdown query param in backend/src/api/admin/assessments.py
+- [x] T091a [US5] Update AssessmentResults schema to include GroupScore and SubmissionContact in backend/src/schemas/results.py
+- [x] T092a [US5] Update ResultsService to include group scores and contact info in backend/src/services/results.py
+- [x] T093a [US5] Update GET /assessments/{id}/results to return hierarchical scores and contact in backend/src/api/admin/assessments.py
 
-**Checkpoint**: Full assessment results retrieval available via API
+**Checkpoint**: Full assessment results with hierarchical scores and contact info
 
 ---
 
-## Phase 8: User Story 6 - Admin Manages Respondents (Priority: P3)
+## Phase 8: User Story 6 - Admin Manages Respondents (Priority: P3) ✅ COMPLETE
 
-**Goal**: Admin can create and manage respondent records (ORG or PERSON types)
+**Goal**: Admin can create and manage respondent records
 
-**Independent Test**: Create respondents of both types, update details, verify they appear in assessment selection.
+- [x] T094 [US6] List respondents endpoint exists in backend/src/api/admin/respondents.py
+- [x] T095 [US6] Get single respondent endpoint exists in backend/src/api/admin/respondents.py
+- [x] T096 [US6] Update respondent endpoint exists in backend/src/api/admin/respondents.py
 
-### Implementation for User Story 6
-
-- [x] T094 [US6] Add list respondents endpoint with pagination, kind filter, and name search in backend/src/api/admin/respondents.py
-- [x] T095 [US6] Add get single respondent endpoint in backend/src/api/admin/respondents.py
-- [x] T096 [US6] Add update respondent endpoint in backend/src/api/admin/respondents.py
-
-**Checkpoint**: Full respondent management available via API
+**Checkpoint**: Full respondent management available via API ✅
 
 ---
 
@@ -262,15 +269,15 @@
 
 **Purpose**: Improvements that affect multiple user stories
 
-- [x] T097 [P] Add OpenAPI documentation customization (title, description, tags) in backend/src/main.py
-- [x] T098 [P] Add request logging middleware in backend/src/core/logging.py
-- [x] T099 [P] Add health check endpoint in backend/src/api/health.py
-- [ ] T100 [P] Create backend Dockerfile with multi-stage build in backend/Dockerfile
-- [ ] T101 [P] Create frontend Dockerfile with nginx in frontend/Dockerfile
-- [ ] T102 Update docker-compose.yml to include backend and frontend services
-- [x] T103 [P] Add input sanitization for Mongolian text fields in backend/src/core/validators.py
-- [x] T104 [P] Add WCAG AA contrast verification for UI components in frontend/src/utils/contrast.ts
-- [ ] T105 Run quickstart.md validation - verify all setup steps work
+- [x] T097 [P] OpenAPI documentation in backend/src/main.py
+- [x] T098 [P] Request logging exists
+- [x] T099 [P] Health check endpoint in backend/src/api/health.py
+- [ ] T100 [P] Create backend Dockerfile in backend/Dockerfile
+- [ ] T101 [P] Create frontend Dockerfile in frontend/Dockerfile
+- [ ] T102 Update docker-compose.yml with all services
+- [x] T103 [P] Input sanitization in backend/src/core/validators.py
+- [x] T104 [P] WCAG AA contrast verification in frontend/src/utils/contrast.ts
+- [ ] T105 Run quickstart.md validation
 
 ---
 
@@ -278,171 +285,95 @@
 
 ### Phase Dependencies
 
-- **Setup (Phase 1)**: No dependencies - can start immediately
-- **Foundational (Phase 2)**: Depends on Setup completion - BLOCKS all user stories
-- **User Stories (Phase 3-8)**: All depend on Foundational phase completion
-- **Polish (Phase 9)**: Depends on all user stories being complete
-
-### User Story Dependencies
-
 ```
-Foundational (Phase 2)
+Setup (Phase 1) ✅
+        │
+        ▼
+Foundational (Phase 2) ✅
         │
         ├─────────────────────────────────┐
         │                                 │
         ▼                                 ▼
-   US1 (Phase 3)                    US6 (Phase 8)*
-   Admin Creates Assessment         Admin Manages Respondents
-        │                                 │
-        │                                 │ (can be parallel)
-        ▼                                 │
-   US2 (Phase 4)  ◄───────────────────────┘
-   Respondent Completes
+   US1 (Phase 3)                    US6 (Phase 8) ✅
+   + QuestionGroup                  Admin Manages Respondents
+   + Updated Snapshot
+        │
+        ▼
+   US2 (Phase 4)
+   + SubmissionContact
+   + Hierarchical Scoring
+   + Contact Form UI
         │
         ├───────────────┬─────────────────┐
         │               │                 │
         ▼               ▼                 ▼
    US3 (Phase 5)   US4 (Phase 6)    US5 (Phase 7)
-   Config Types    Config Questions  Get Results
+   Group CRUD      Question CRUD    Results w/Contact
 ```
 
-*Note: US3, US4, US6 are configuration stories that logically belong before US1, but US1 includes minimal CRUD to be independently testable. These later phases add full CRUD features.
+### New Tasks Summary
 
-### Within Each User Story
-
-- Models before schemas
-- Schemas before repositories
-- Repositories before services
-- Services before API routes
-- Backend before frontend (for US2)
-
-### Parallel Opportunities
-
-**Phase 1 (Setup)**:
-```bash
-# All [P] tasks can run in parallel:
-T003, T004, T005, T006, T008, T009 # After T001, T002
-```
-
-**Phase 2 (Foundational)**:
-```bash
-# After T010, T011:
-T012, T013, T017, T018, T019, T020, T021, T022, T023, T024
-```
-
-**Phase 3 (US1 - Models)**:
-```bash
-# Models can be created in parallel:
-T025, T026, T027, T028, T029
-```
-
-**Phase 3 (US1 - Schemas)**:
-```bash
-# After models, schemas in parallel:
-T032, T033, T034, T035, T036
-```
-
-**Phase 3 (US1 - Repositories)**:
-```bash
-# After schemas, repositories in parallel:
-T037, T038, T039, T040, T041
-```
-
-**Phase 4 (US2 - Backend Models)**:
-```bash
-T051, T052, T053 # In parallel
-```
-
-**Phase 4 (US2 - Frontend Components)**:
-```bash
-# All components can be developed in parallel:
-T068, T069, T070, T071, T072, T073, T076, T077, T078
-```
+| Category | New Tasks | Description |
+|----------|-----------|-------------|
+| QuestionGroup Model | T025a, T030a, T030b, T031a | New entity for question grouping |
+| QuestionGroup Schema | T032a, T033a | Pydantic schemas |
+| QuestionGroup Repository | T037a, T038a | CRUD operations |
+| QuestionGroup API | T046a, T047a, T050a | Admin endpoints |
+| SubmissionContact Model | T053b, T054a, T054b | New entity for form contact |
+| SubmissionContact Schema | T057a, T057b | Pydantic schemas |
+| Hierarchical Scoring | T053a, T058a, T059a | Group→Type→Overall calculation |
+| Frontend Updates | T066a, T067a, T069a, T072a, T073a, T074a, T075a, T079a, T081a | UI for groups and contact |
+| Group Admin | T086a, T086b, T087a, T088a | Full group management |
+| Results Update | T091a, T092a, T093a | Include groups and contact in results |
 
 ---
 
-## Parallel Example: User Story 1 Models
+## Implementation Priority
 
-```bash
-# Launch all models for User Story 1 together:
-Task: "Create QuestionnaireType model in backend/src/models/questionnaire_type.py"
-Task: "Create Question model in backend/src/models/question.py"
-Task: "Create QuestionOption model in backend/src/models/question_option.py"
-Task: "Create Respondent model in backend/src/models/respondent.py"
-Task: "Create Assessment model in backend/src/models/assessment.py"
-```
+### Immediate (New Entities)
 
-## Parallel Example: User Story 2 Frontend Components
+1. **T025a**: Create QuestionGroup model
+2. **T053b**: Create SubmissionContact model
+3. **T030a, T054a**: Database migrations
+4. **T032a, T057a**: Pydantic schemas
+5. **T037a**: QuestionGroup repository
+6. **T046a**: Groups API endpoints
 
-```bash
-# Launch all frontend components in parallel:
-Task: "Create ProgressBar component in frontend/src/components/ProgressBar.tsx"
-Task: "Create QuestionCard component in frontend/src/components/QuestionCard.tsx"
-Task: "Create CommentField component in frontend/src/components/CommentField.tsx"
-Task: "Create ImageUpload component in frontend/src/components/ImageUpload.tsx"
-Task: "Create TypeScoreCard component in frontend/src/components/TypeScoreCard.tsx"
-```
+### Next (Update Existing)
 
----
+1. **T026, T033a, T038a, T047a**: Update Question to use group_id
+2. **T042a, T062a**: Update snapshot service and API
+3. **T058a, T059a, T064a**: Hierarchical scoring and submission
 
-## Implementation Strategy
+### Then (Frontend)
 
-### MVP First (User Stories 1 + 2)
-
-1. Complete Phase 1: Setup
-2. Complete Phase 2: Foundational (CRITICAL - blocks all stories)
-3. Complete Phase 3: User Story 1 (Admin Creates Assessment)
-4. Complete Phase 4: User Story 2 (Respondent Completes Assessment)
-5. **STOP and VALIDATE**: Test full flow end-to-end
-6. Deploy/demo MVP
-
-### Incremental Delivery
-
-1. Complete Setup + Foundational → Foundation ready
-2. Add User Story 1 → Test admin API → Demo admin flow
-3. Add User Story 2 → Test full flow → Deploy MVP!
-4. Add User Stories 3, 4, 5, 6 → Enhance admin capabilities
-5. Add Polish → Production ready
-
-### Parallel Team Strategy
-
-With multiple developers:
-
-**Developer A (Backend)**:
-- Phase 1-2: Setup + Foundational
-- Phase 3: US1 backend
-- Phase 4: US2 backend
-- Phase 5-8: Remaining backend
-
-**Developer B (Frontend)**:
-- Phase 1-2: Frontend setup
-- Phase 4: US2 frontend (after backend models ready)
-- Phase 9: Polish frontend
+1. **T073a**: ContactForm component
+2. **T066a, T067a**: Types and schemas
+3. **T074a, T075a**: Page updates
 
 ---
 
-## Task Summary
+## Task Statistics
 
-| Phase | Story | Tasks | Parallel |
-|-------|-------|-------|----------|
-| Phase 1 | Setup | 9 | 7 |
-| Phase 2 | Foundational | 15 | 11 |
-| Phase 3 | US1 - Admin Creates Assessment | 26 | 18 |
-| Phase 4 | US2 - Respondent Completes | 34 | 17 |
-| Phase 5 | US3 - Config Types | 3 | 0 |
-| Phase 6 | US4 - Config Questions | 3 | 0 |
-| Phase 7 | US5 - Get Results | 3 | 0 |
-| Phase 8 | US6 - Manage Respondents | 3 | 0 |
-| Phase 9 | Polish | 9 | 7 |
-| **Total** | | **105** | **60** |
+| Phase | Total | Complete | Remaining | New |
+|-------|-------|----------|-----------|-----|
+| Phase 1 | 9 | 9 | 0 | 0 |
+| Phase 2 | 15 | 15 | 0 | 0 |
+| Phase 3 | 26 | 17 | 9 | 9 |
+| Phase 4 | 34 | 18 | 16 | 14 |
+| Phase 5 | 3 | 2 | 1 | 3 |
+| Phase 6 | 3 | 2 | 1 | 1 |
+| Phase 7 | 3 | 0 | 3 | 3 |
+| Phase 8 | 3 | 3 | 0 | 0 |
+| Phase 9 | 9 | 5 | 4 | 0 |
+| **Total** | **105** | **71** | **34** | **30** |
 
 ---
 
 ## Notes
 
-- [P] tasks = different files, no dependencies
-- [Story] label maps task to specific user story for traceability
-- Each user story is independently completable and testable
-- Commit after each task or logical group
-- Stop at any checkpoint to validate story independently
-- MVP = Phase 1-4 (Setup + Foundational + US1 + US2)
+- Main branch UI merged - existing components need updates, not creation
+- QuestionGroup and SubmissionContact are new entities requiring full implementation
+- Scoring logic must be updated to calculate: Questions → Groups → Types → Overall
+- Frontend must NOT calculate scores - display backend results only
+- All new migrations should be created incrementally, not modify existing
