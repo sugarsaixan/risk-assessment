@@ -54,10 +54,12 @@ services:
       - "traefik.http.routers.risk-assessment-api-secure.tls=true"
       - "traefik.http.routers.risk-assessment-api-secure.service=risk-assessment-api-secure"
       - "traefik.http.routers.risk-assessment-api-secure.middlewares=risk-assessment-api-strip"
+      - "traefik.http.routers.risk-assessment-api-secure.priority=1000"
 
       - "traefik.http.routers.risk-assessment-api-insecure.entrypoints=web"
       - "traefik.http.routers.risk-assessment-api-insecure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment/api`)"
       - "traefik.http.routers.risk-assessment-api-insecure.middlewares=redirectSecure@file"
+      - "traefik.http.routers.risk-assessment-api-insecure.priority=1000"
 
       # Strip /assessment/api prefix before sending to backend
       - "traefik.http.middlewares.risk-assessment-api-strip.stripprefix.prefixes=/assessment/api"
@@ -87,19 +89,25 @@ services:
 
       # Frontend routes under /assessment/
       - "traefik.http.routers.risk-assessment-frontend-secure.entrypoints=websecure"
-      - "traefik.http.routers.risk-assessment-frontend-secure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment`)"
+      - "traefik.http.routers.risk-assessment-frontend-secure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment/`)"
       - "traefik.http.routers.risk-assessment-frontend-secure.tls=true"
       - "traefik.http.routers.risk-assessment-frontend-secure.service=risk-assessment-frontend-secure"
-      - "traefik.http.routers.risk-assessment-frontend-secure.priority=1"
+      - "traefik.http.routers.risk-assessment-frontend-secure.priority=900"
 
       - "traefik.http.routers.risk-assessment-frontend-insecure.entrypoints=web"
-      - "traefik.http.routers.risk-assessment-frontend-insecure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment`)"
+      - "traefik.http.routers.risk-assessment-frontend-insecure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment/`)"
+      - "traefik.http.routers.risk-assessment-frontend-insecure.priority=900"
       - "traefik.http.routers.risk-assessment-frontend-insecure.middlewares=redirectSecure@file"
 
       - "traefik.http.services.risk-assessment-frontend-secure.loadbalancer.server.port=80"
 
 volumes:
   risk_assessment_postgres_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ./volumes/postgres
 
 networks:
   traefik:
