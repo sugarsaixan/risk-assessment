@@ -268,10 +268,17 @@ Test Key
   python -m src.cli create-key "Test Key"                                
                                                                          
   # Then use the key in requests                                         
-  curl -H "X-API-Key: GTi1ee9_TxmoGw0h1zexB8aB5UH3_CYiemsw8LI-H5c" http://localhost:8000/admin/types      
+  curl -H "X-API-Key: dAYc7-fJHBdFR8eLyDj4QDUeygfMx42FLHkdRapZX2w" http://localhost:8000/admin/types
                                                                          
   Let me know if you see any errors.     
 
+
+API Key created successfully!
+ID: bc672920-757f-49df-b211-4b88782a0825
+Name: Test Key
+Key: dAYc7-fJHBdFR8eLyDj4QDUeygfMx42FLHkdRapZX2w
+
+IMPORTANT: Save this key securely. It cannot be retrieved later.
 
 
 

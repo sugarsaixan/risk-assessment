@@ -1,6 +1,6 @@
 /**
- * AssessmentForm page with hierarchical Type → Group → Question structure,
- * contact info form, and validation.
+ * AssessmentForm page with hierarchical Type → Group → Question structure.
+ * Contact info is collected on a separate page after questionnaire completion.
  */
 
 import { useCallback, useMemo, useState } from "react";
@@ -8,16 +8,15 @@ import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { CommentField } from "../components/CommentField";
-import { ContactForm } from "../components/ContactForm";
 import { ImageUpload } from "../components/ImageUpload";
 import { ProgressBar } from "../components/ProgressBar";
 import { QuestionCard } from "../components/QuestionCard";
 import { MN } from "../constants/mn";
+import { useAssessmentContext } from "../contexts/AssessmentContext";
 import { useAssessment, getAllQuestions, getTotalQuestions } from "../hooks/useAssessment";
 import { ThemeToggle } from "../hooks/useTheme";
 import { useMultiQuestionUpload } from "../hooks/useUpload";
-import { submitAssessment } from "../services/assessment";
-import type { OptionType, SnapshotQuestion, SubmissionContactInput } from "../types/api";
+import type { OptionType, SnapshotQuestion } from "../types/api";
 
 interface FormAnswer {
   selected_option?: OptionType;
@@ -25,7 +24,6 @@ interface FormAnswer {
 }
 
 interface FormData {
-  contact: Partial<SubmissionContactInput>;
   answers: Record<string, FormAnswer>;
 }
 
@@ -33,9 +31,10 @@ export function AssessmentForm() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const { state } = useAssessment(token);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [contactErrors, setContactErrors] = useState<Partial<Record<keyof SubmissionContactInput, string>>>({});
+
+  // Get context to store answers for ContactPage
+  const { setAnswers: setContextAnswers } = useAssessmentContext();
 
   const {
     handleSubmit,
@@ -43,14 +42,12 @@ export function AssessmentForm() {
     setValue,
   } = useForm<FormData>({
     defaultValues: {
-      contact: {},
       answers: {},
     },
   });
 
   const formData = watch();
   const answers = formData.answers;
-  const contact = formData.contact;
 
   // Upload management
   const {
@@ -74,18 +71,6 @@ export function AssessmentForm() {
     if (state.status !== "success") return [];
     return getAllQuestions(state.data);
   }, [state]);
-
-  // Handle contact field change
-  const handleContactChange = useCallback(
-    (field: keyof SubmissionContactInput, value: string) => {
-      setValue(`contact.${field}`, value);
-      // Clear error when user starts typing
-      if (contactErrors[field]) {
-        setContactErrors((prev) => ({ ...prev, [field]: undefined }));
-      }
-    },
-    [setValue, contactErrors]
-  );
 
   // Handle option selection
   const handleOptionSelect = useCallback(
@@ -145,32 +130,6 @@ export function AssessmentForm() {
     []
   );
 
-  // Validate contact fields
-  const validateContact = useCallback((): boolean => {
-    const errors: Partial<Record<keyof SubmissionContactInput, string>> = {};
-
-    if (!contact.last_name?.trim()) {
-      errors.last_name = "Овог оруулна уу";
-    }
-    if (!contact.first_name?.trim()) {
-      errors.first_name = "Нэр оруулна уу";
-    }
-    if (!contact.email?.trim()) {
-      errors.email = "И-мэйл оруулна уу";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email)) {
-      errors.email = "И-мэйл хаяг буруу байна";
-    }
-    if (!contact.phone?.trim()) {
-      errors.phone = "Утасны дугаар оруулна уу";
-    }
-    if (!contact.position?.trim()) {
-      errors.position = "Албан тушаал оруулна уу";
-    }
-
-    setContactErrors(errors);
-    return Object.keys(errors).length === 0;
-  }, [contact]);
-
   // Validate answer against requirements
   const validateAnswer = useCallback(
     (questionId: string): string | null => {
@@ -202,15 +161,9 @@ export function AssessmentForm() {
     [allQuestions, answers, getAttachmentIdsForQuestion]
   );
 
-  // Handle form submission
-  const onSubmit = async () => {
+  // Handle form submission - navigate to contact page
+  const onSubmit = () => {
     if (!token || state.status !== "success") return;
-
-    // Validate contact info
-    if (!validateContact()) {
-      setSubmitError("Хариулагчийн мэдээллийг бүрэн бөглөнө үү");
-      return;
-    }
 
     // Validate all answers
     const validationErrors: string[] = [];
@@ -226,49 +179,13 @@ export function AssessmentForm() {
       return;
     }
 
-    setIsSubmitting(true);
     setSubmitError(null);
 
-    // Build submission data with contact and answers
-    const submitData = {
-      contact: {
-        last_name: contact.last_name!.trim(),
-        first_name: contact.first_name!.trim(),
-        email: contact.email!.trim(),
-        phone: contact.phone!.trim(),
-        position: contact.position!.trim(),
-      },
-      answers: allQuestions.map((question) => {
-        const commentValue = answers[question.id]?.comment?.trim();
-        return {
-          question_id: question.id,
-          selected_option: answers[question.id]?.selected_option || "NO",
-          ...(commentValue ? { comment: commentValue } : {}),
-          attachment_ids: getAttachmentIdsForQuestion(question.id),
-        };
-      }),
-    };
+    // Store answers in context for ContactPage to access
+    setContextAnswers(answers);
 
-    const result = await submitAssessment(token, submitData);
-
-    setIsSubmitting(false);
-
-    if (result.success) {
-      // Navigate to results page with data
-      navigate(`/a/${token}/results`, {
-        state: { results: result.data },
-        replace: true,
-      });
-    } else {
-      setSubmitError(result.message);
-
-      // Handle specific errors
-      if (result.error === "expired") {
-        navigate("/expired", { replace: true });
-      } else if (result.error === "already_completed") {
-        navigate("/used", { replace: true });
-      }
-    }
+    // Navigate to contact page to collect contact info
+    navigate(`/a/${token}/contact`);
   };
 
   // Loading state
@@ -332,14 +249,6 @@ export function AssessmentForm() {
             <ThemeToggle />
           </div>
         </div>
-
-        {/* Contact Form */}
-        <ContactForm
-          value={contact}
-          onChange={handleContactChange}
-          errors={contactErrors}
-          className="mb-6"
-        />
 
         {/* Progress Bar */}
         <div className="surface-card p-4 mb-8">
@@ -446,14 +355,14 @@ export function AssessmentForm() {
             </div>
           )}
 
-          {/* Submit button */}
+          {/* Submit button - navigates to contact page */}
           <div className="pt-6">
             <button
               type="submit"
-              disabled={isSubmitting || answeredCount < totalQuestions}
+              disabled={answeredCount < totalQuestions}
               className="btn-cta"
             >
-              {isSubmitting ? MN.assessment.submitting : MN.assessment.submitAssessment}
+              {MN.assessment.submitAssessment}
             </button>
 
             {answeredCount < totalQuestions && (

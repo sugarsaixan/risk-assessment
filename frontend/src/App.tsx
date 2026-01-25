@@ -2,21 +2,38 @@
  * Main application component with route configuration.
  */
 
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, Outlet } from "react-router-dom";
 
+import { AssessmentProvider } from "./contexts/AssessmentContext";
 import { AssessmentForm } from "./pages/AssessmentForm";
+import { ContactPage } from "./pages/ContactPage";
 import { ExpiredLink } from "./pages/ExpiredLink";
 import { NotFound } from "./pages/NotFound";
 import { Results } from "./pages/Results";
 import { UsedLink } from "./pages/UsedLink";
 
+/**
+ * Layout wrapper that provides AssessmentContext to child routes.
+ * Preserves state across navigation between form, contact, and results pages.
+ */
+function AssessmentLayout() {
+  return (
+    <AssessmentProvider>
+      <Outlet />
+    </AssessmentProvider>
+  );
+}
+
 function App() {
   return (
     <div className="min-h-screen app-shell">
       <Routes>
-        {/* Public assessment routes */}
-        <Route path="/a/:token" element={<AssessmentForm />} />
-        <Route path="/a/:token/results" element={<Results />} />
+        {/* Public assessment routes - wrapped in AssessmentProvider for shared state */}
+        <Route path="/a/:token" element={<AssessmentLayout />}>
+          <Route index element={<AssessmentForm />} />
+          <Route path="contact" element={<ContactPage />} />
+          <Route path="results" element={<Results />} />
+        </Route>
 
         {/* Error pages */}
         <Route path="/expired" element={<ExpiredLink />} />

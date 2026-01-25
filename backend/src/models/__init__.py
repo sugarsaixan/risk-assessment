@@ -2,6 +2,7 @@
 from src.models.answer import Answer
 from src.models.api_key import ApiKey
 from src.models.assessment import Assessment
+from src.models.assessment_draft import AssessmentDraft
 from src.models.assessment_score import AssessmentScore
 from src.models.attachment import Attachment
 from src.models.base import (
@@ -42,6 +43,7 @@ __all__ = [
     "Answer",
     "ApiKey",
     "Assessment",
+    "AssessmentDraft",
     "AssessmentScore",
     "Attachment",
     "Question",

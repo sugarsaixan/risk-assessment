@@ -1,0 +1,344 @@
+openapi: 3.0.3
+info:
+  title: Risk Assessment Public API - Draft Endpoints
+  description: |
+    New and modified endpoints for the submit-then-contact workflow.
+    These endpoints extend the existing public API from 001-risk-assessment-survey.
+  version: 1.1.0
+
+servers:
+  - url: /api/public
+    description: Public API (rate limited, no auth required)
+
+paths:
+  /a/{token}/draft:
+    get:
+      summary: Load saved draft
+      description: |
+        Retrieve saved draft answers for an assessment.
+        Returns null/404 if no draft exists.
+        Only works for PENDING, non-expired assessments.
+      operationId: getDraft
+      tags:
+        - Draft
+      parameters:
+        - $ref: '#/components/parameters/Token'
+      responses:
+        '200':
+          description: Draft found and returned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DraftResponse'
+        '204':
+          description: No draft exists for this assessment
+        '404':
+          description: Assessment not found or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '410':
+          description: Assessment already completed (link used)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+    put:
+      summary: Save draft
+      description: |
+        Save or update draft answers for an assessment.
+        Uses upsert pattern - creates new draft or updates existing.
+        Only works for PENDING, non-expired assessments.
+      operationId: saveDraft
+      tags:
+        - Draft
+      parameters:
+        - $ref: '#/components/parameters/Token'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DraftSaveRequest'
+      responses:
+        '200':
+          description: Draft saved successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DraftSaveResponse'
+        '400':
+          description: Invalid draft data
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: Assessment not found or expired
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '410':
+          description: Assessment already completed (link used)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /a/{token}:
+    get:
+      summary: Get assessment (modified)
+      description: |
+        MODIFIED from 001: Now also returns draft data if exists.
+        Response includes `draft` field with saved answers if available.
+      operationId: getAssessment
+      tags:
+        - Assessment
+      parameters:
+        - $ref: '#/components/parameters/Token'
+      responses:
+        '200':
+          description: Assessment found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentWithDraftResponse'
+
+  /a/{token}/submit:
+    post:
+      summary: Submit assessment (modified)
+      description: |
+        MODIFIED from 001: Contact info now required in request body.
+        Submission creates SubmissionContact, saves answers, calculates scores,
+        and deletes any existing draft.
+      operationId: submitAssessment
+      tags:
+        - Assessment
+      parameters:
+        - $ref: '#/components/parameters/Token'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SubmitRequest'
+      responses:
+        '200':
+          description: Assessment submitted successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubmitResponse'
+
+components:
+  parameters:
+    Token:
+      name: token
+      in: path
+      required: true
+      description: One-time assessment access token
+      schema:
+        type: string
+        minLength: 32
+        maxLength: 64
+
+  schemas:
+    DraftSaveRequest:
+      type: object
+      required:
+        - answers
+      properties:
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/DraftAnswer'
+        current_type_index:
+          type: integer
+          minimum: 0
+          description: Current position in questionnaire (optional, for UI state)
+        current_group_index:
+          type: integer
+          minimum: 0
+          description: Current position in questionnaire (optional, for UI state)
+
+    DraftAnswer:
+      type: object
+      required:
+        - question_id
+      properties:
+        question_id:
+          type: string
+          format: uuid
+        selected_option:
+          type: string
+          enum: [YES, NO]
+          nullable: true
+        comment:
+          type: string
+          maxLength: 2000
+          nullable: true
+        attachment_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          maxItems: 10
+
+    DraftResponse:
+      type: object
+      required:
+        - answers
+        - last_saved_at
+      properties:
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/DraftAnswer'
+        current_type_index:
+          type: integer
+        current_group_index:
+          type: integer
+        last_saved_at:
+          type: string
+          format: date-time
+
+    DraftSaveResponse:
+      type: object
+      required:
+        - last_saved_at
+      properties:
+        last_saved_at:
+          type: string
+          format: date-time
+        message:
+          type: string
+          example: "Хадгалагдсан"
+
+    AssessmentWithDraftResponse:
+      type: object
+      description: |
+        Extended assessment response that includes draft if available.
+        Other fields same as 001-risk-assessment-survey.
+      properties:
+        id:
+          type: string
+          format: uuid
+        respondent_name:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        questions_snapshot:
+          type: object
+          description: Full questionnaire snapshot (types, groups, questions, options)
+        draft:
+          $ref: '#/components/schemas/DraftResponse'
+          nullable: true
+          description: Saved draft answers if any exist
+
+    SubmitRequest:
+      type: object
+      required:
+        - contact
+        - answers
+      properties:
+        contact:
+          $ref: '#/components/schemas/ContactInput'
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/AnswerInput'
+
+    ContactInput:
+      type: object
+      required:
+        - last_name
+        - first_name
+        - email
+        - phone
+        - position
+      properties:
+        last_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Овог (Last name)
+        first_name:
+          type: string
+          minLength: 1
+          maxLength: 100
+          description: Нэр (First name)
+        email:
+          type: string
+          format: email
+          maxLength: 255
+        phone:
+          type: string
+          minLength: 8
+          maxLength: 20
+          description: Phone number (Mongolian format)
+        position:
+          type: string
+          minLength: 1
+          maxLength: 200
+          description: Албан тушаал (Position/Title)
+
+    AnswerInput:
+      type: object
+      required:
+        - question_id
+        - selected_option
+      properties:
+        question_id:
+          type: string
+          format: uuid
+        selected_option:
+          type: string
+          enum: [YES, NO]
+        comment:
+          type: string
+          maxLength: 2000
+          nullable: true
+        attachment_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+
+    SubmitResponse:
+      type: object
+      description: Same as 001 - returns calculated scores and results
+      properties:
+        scores:
+          type: object
+        overall_rating:
+          type: string
+          enum: [LOW, MEDIUM, HIGH]
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+          example: "assessment_expired"
+        message:
+          type: string
+          example: "Линкний хугацаа дууссан байна."
