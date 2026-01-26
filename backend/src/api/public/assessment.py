@@ -4,7 +4,7 @@ from typing import Annotated
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, Response
 from slowapi import Limiter
 from slowapi.util import get_remote_address
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -12,6 +12,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.core.database import get_session
 from src.core.rate_limit import PUBLIC_RATE_LIMIT
 from src.schemas.attachment import AttachmentUpload
+from src.schemas.draft import DraftResponse, DraftSaveRequest, DraftSaveResponse
 from src.schemas.public import (
     AssessmentErrorResponse,
     AssessmentFormResponse,
@@ -19,6 +20,7 @@ from src.schemas.public import (
     SubmitResponse,
 )
 from src.services.assessment import AssessmentService
+from src.services.draft import DraftService
 from src.services.submission import SubmissionService
 from src.services.upload import UploadService
 
@@ -88,13 +90,143 @@ async def get_assessment_form(
     # Load respondent in async-safe way before access.
     await session.refresh(assessment, ["respondent"])
 
+    # Load draft if exists
+    draft_service = DraftService(session)
+    draft = await draft_service.load_draft(assessment.id)
+
     # Return hierarchical structure: types contain groups contain questions
     return AssessmentFormResponse(
         id=str(assessment.id),
         respondent_name=assessment.respondent.name,
         expires_at=assessment.expires_at.isoformat(),
         types=assessment.questions_snapshot.get("types", []),
+        draft=draft,
     )
+
+
+@router.get(
+    "/{token}/draft",
+    response_model=DraftResponse,
+    responses={
+        204: {"description": "No draft exists"},
+        404: {"model": AssessmentErrorResponse, "description": "Assessment not found"},
+        410: {"model": AssessmentErrorResponse, "description": "Assessment expired or completed"},
+    },
+    summary="Load saved draft",
+)
+@limiter.limit(PUBLIC_RATE_LIMIT)
+async def get_draft(
+    request: Request,
+    token: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> DraftResponse | Response | JSONResponse:
+    """Load saved draft answers for an assessment.
+
+    Returns 204 if no draft exists.
+    Only works for PENDING, non-expired assessments.
+    """
+    service = AssessmentService(session)
+    assessment, error = await service.get_assessment_status(token)
+
+    if error == "not_found":
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=AssessmentErrorResponse(
+                error="not_found",
+                message=ERROR_MESSAGES["not_found"],
+            ).model_dump(),
+        )
+
+    if error == "expired":
+        return JSONResponse(
+            status_code=status.HTTP_410_GONE,
+            content=AssessmentErrorResponse(
+                error="expired",
+                message=ERROR_MESSAGES["expired"],
+            ).model_dump(),
+        )
+
+    if error == "already_completed":
+        return JSONResponse(
+            status_code=status.HTTP_410_GONE,
+            content=AssessmentErrorResponse(
+                error="already_completed",
+                message=ERROR_MESSAGES["already_completed"],
+            ).model_dump(),
+        )
+
+    # Load draft
+    draft_service = DraftService(session)
+    draft = await draft_service.load_draft(assessment.id)
+
+    if draft is None:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    return draft
+
+
+@router.put(
+    "/{token}/draft",
+    response_model=DraftSaveResponse,
+    responses={
+        400: {"model": AssessmentErrorResponse, "description": "Invalid draft data"},
+        404: {"model": AssessmentErrorResponse, "description": "Assessment not found"},
+        410: {"model": AssessmentErrorResponse, "description": "Assessment expired or completed"},
+    },
+    summary="Save draft",
+)
+@limiter.limit(PUBLIC_RATE_LIMIT)
+async def save_draft(
+    request: Request,
+    token: str,
+    data: DraftSaveRequest,
+    session: Annotated[AsyncSession, Depends(get_session)],
+) -> DraftSaveResponse | JSONResponse:
+    """Save or update draft answers for an assessment.
+
+    Uses upsert pattern - creates new draft or updates existing.
+    Only works for PENDING, non-expired assessments.
+    """
+    service = AssessmentService(session)
+    assessment, error = await service.get_assessment_status(token)
+
+    if error == "not_found":
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=AssessmentErrorResponse(
+                error="not_found",
+                message=ERROR_MESSAGES["not_found"],
+            ).model_dump(),
+        )
+
+    if error == "expired":
+        return JSONResponse(
+            status_code=status.HTTP_410_GONE,
+            content=AssessmentErrorResponse(
+                error="expired",
+                message=ERROR_MESSAGES["expired"],
+            ).model_dump(),
+        )
+
+    if error == "already_completed":
+        return JSONResponse(
+            status_code=status.HTTP_410_GONE,
+            content=AssessmentErrorResponse(
+                error="already_completed",
+                message=ERROR_MESSAGES["already_completed"],
+            ).model_dump(),
+        )
+
+    # Save draft
+    draft_service = DraftService(session)
+    try:
+        result = await draft_service.save_draft(assessment.id, data)
+        return result
+    except ValueError as e:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(e),
+        )
 
 
 @router.post(
@@ -209,4 +341,9 @@ async def submit_assessment(
         data.contact,
         data.answers,
     )
+
+    # Delete draft after successful submission
+    draft_service = DraftService(session)
+    await draft_service.delete_draft(assessment.id)
+
     return result

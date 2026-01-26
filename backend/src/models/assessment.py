@@ -12,6 +12,7 @@ from src.models.base import BaseModel
 from src.models.enums import AssessmentStatus
 
 if TYPE_CHECKING:
+    from src.models.assessment_draft import AssessmentDraft
     from src.models.respondent import Respondent
     from src.models.submission_contact import SubmissionContact
 
@@ -85,6 +86,11 @@ class Assessment(BaseModel):
     )
     submission_contact: Mapped["SubmissionContact | None"] = relationship(
         "SubmissionContact",
+        back_populates="assessment",
+        uselist=False,
+    )
+    draft: Mapped["AssessmentDraft | None"] = relationship(
+        "AssessmentDraft",
         back_populates="assessment",
         uselist=False,
     )

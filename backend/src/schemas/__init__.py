@@ -6,6 +6,12 @@ from src.schemas.assessment import (
     AssessmentResponse,
     AssessmentWithRespondent,
 )
+from src.schemas.draft import (
+    DraftAnswer,
+    DraftResponse,
+    DraftSaveRequest,
+    DraftSaveResponse,
+)
 from src.schemas.common import (
     ErrorDetail,
     ErrorResponse,
@@ -39,6 +45,11 @@ from src.schemas.respondent import (
 )
 
 __all__ = [
+    # Draft
+    "DraftAnswer",
+    "DraftSaveRequest",
+    "DraftResponse",
+    "DraftSaveResponse",
     # Common
     "ErrorDetail",
     "ErrorResponse",

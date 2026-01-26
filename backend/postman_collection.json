@@ -813,6 +813,41 @@
           }
         },
         {
+          "name": "Save Draft",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"answers\": [\n    {\n      \"question_id\": \"{{question_id}}\",\n      \"selected_option\": \"YES\",\n      \"comment\": \"Тайлбар\"\n    }\n  ]\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/a/{{assessment_token}}/draft",
+              "host": ["{{base_url}}"],
+              "path": ["a", "{{assessment_token}}", "draft"]
+            },
+            "description": "Save or update draft answers for an assessment. Uses PUT with upsert semantics. Auto-save calls this every 30s, or user clicks Хадгалах button."
+          }
+        },
+        {
+          "name": "Load Draft",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url}}/a/{{assessment_token}}/draft",
+              "host": ["{{base_url}}"],
+              "path": ["a", "{{assessment_token}}", "draft"]
+            },
+            "description": "Load saved draft for an assessment. Returns 204 No Content if no draft exists."
+          }
+        },
+        {
           "name": "Submit Assessment",
           "request": {
             "method": "POST",
@@ -832,6 +867,76 @@
               "path": ["a", "{{assessment_token}}", "submit"]
             },
             "description": "Submit assessment answers with contact info (Хариулагч). Validates all answers, calculates hierarchical scores (Group → Type → Overall), and returns results."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Admin - Cleanup",
+      "item": [
+        {
+          "name": "Cleanup Orphaned Drafts",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/cleanup/drafts?older_than_days=30&include_images=false&dry_run=true",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "cleanup", "drafts"],
+              "query": [
+                {
+                  "key": "older_than_days",
+                  "value": "30",
+                  "description": "Only cleanup drafts for assessments expired more than N days ago"
+                },
+                {
+                  "key": "include_images",
+                  "value": "false",
+                  "description": "Also delete orphaned images from storage"
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true",
+                  "description": "Preview what would be deleted without actually deleting"
+                }
+              ]
+            },
+            "description": "Delete draft records for expired assessments. Supports dry_run mode to preview without deleting. Optionally also cleans up orphaned images."
+          }
+        },
+        {
+          "name": "Cleanup Orphaned Images",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "X-API-Key",
+                "value": "{{api_key}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/admin/cleanup/images?older_than_days=30&dry_run=true",
+              "host": ["{{base_url}}"],
+              "path": ["admin", "cleanup", "images"],
+              "query": [
+                {
+                  "key": "older_than_days",
+                  "value": "30",
+                  "description": "Only cleanup images uploaded more than N days ago"
+                },
+                {
+                  "key": "dry_run",
+                  "value": "true",
+                  "description": "Preview what would be deleted without actually deleting"
+                }
+              ]
+            },
+            "description": "Delete images from storage that are not referenced by any answer. Supports dry_run mode to preview."
           }
         }
       ]
