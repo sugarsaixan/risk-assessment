@@ -223,8 +223,8 @@ Phase 2: Foundational is now COMPLETE ✓
                                                                          
   To use CLI:                                                            
   cd backend                                                             
-  python -m src.cli create-key "My Admin Key"                            
-  python -m src.cli list-keys                                            
+  python -m src.cli create-key "My Admin Key"
+  python -m src.cli list-keys
                                                                          
   To run backend:                                                        
   cd backend                                                             

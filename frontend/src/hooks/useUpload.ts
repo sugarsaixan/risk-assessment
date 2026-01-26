@@ -265,6 +265,17 @@ export function useMultiQuestionUpload(token: string) {
     });
   }, []);
 
+  const setFilesForQuestion = useCallback(
+    (questionId: string, files: UploadedFile[]) => {
+      setUploads((prev) => {
+        const updated = new Map(prev);
+        updated.set(questionId, files);
+        return updated;
+      });
+    },
+    []
+  );
+
   const getFilesForQuestion = useCallback(
     (questionId: string): UploadedFile[] => {
       return uploads.get(questionId) || [];
@@ -292,6 +303,7 @@ export function useMultiQuestionUpload(token: string) {
   return {
     uploadForQuestion,
     removeFromQuestion,
+    setFilesForQuestion,
     getFilesForQuestion,
     getAttachmentIdsForQuestion,
     isUploadingForQuestion,

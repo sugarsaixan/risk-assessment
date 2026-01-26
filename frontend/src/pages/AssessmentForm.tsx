@@ -4,7 +4,7 @@
  */
 
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { useForm, useWatch } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 
 import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
@@ -18,9 +18,10 @@ import { useAssessmentContext } from "../contexts/AssessmentContext";
 import { useAssessment, getAllQuestions, getTotalQuestions } from "../hooks/useAssessment";
 import { useAutoSave } from "../hooks/useAutoSave";
 import { ThemeToggle } from "../hooks/useTheme";
-import { useMultiQuestionUpload } from "../hooks/useUpload";
-import type { OptionType, SnapshotQuestion } from "../types/api";
-import type { DraftAnswer } from "../services/draft";
+import { useMultiQuestionUpload, type UploadedFile } from "../hooks/useUpload";
+import type { OptionType, SnapshotQuestion, AssessmentFormDraft } from "../types/api";
+import { loadDraft } from "../services/draft";
+import type { DraftAnswer, DraftResponse } from "../services/draft";
 
 interface FormAnswer {
   selected_option?: OptionType;
@@ -36,30 +37,32 @@ export function AssessmentForm() {
   const navigate = useNavigate();
   const { state } = useAssessment(token);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [loadedDraft, setLoadedDraft] = useState<AssessmentFormDraft | DraftResponse | null>(null);
 
   // Get context to store answers for ContactPage
   const { setAnswers: setContextAnswers, answers: contextAnswers } = useAssessmentContext();
 
   const {
     handleSubmit,
-    watch,
+    control,
     setValue,
+    reset,
   } = useForm<FormData>({
     defaultValues: {
       answers: contextAnswers,
     },
   });
 
-  const formData = watch();
-  const answers = formData.answers;
+  const answers = useWatch({ control, name: "answers" }) || {};
 
   // Restore draft answers on initial load
   const [draftRestored, setDraftRestored] = useState(false);
   useEffect(() => {
     if (draftRestored) return;
-    if (state.status !== "success") return;
+    if (!draftLoaded) return;
 
-    const draft = state.data.draft;
+    const draft = loadedDraft;
     if (!draft || draft.answers.length === 0) {
       setDraftRestored(true);
       return;
@@ -85,40 +88,87 @@ export function AssessmentForm() {
       restoredAnswers[da.question_id] = answer;
     }
 
-    // Set restored answers into the form
-    for (const [qId, answer] of Object.entries(restoredAnswers)) {
-      if (answer.selected_option) {
-        setValue(`answers.${qId}.selected_option`, answer.selected_option);
-      }
-      if (answer.comment) {
-        setValue(`answers.${qId}.comment`, answer.comment);
-      }
-    }
+    // Set restored answers into the form and context
+    reset({ answers: restoredAnswers });
+    setContextAnswers(restoredAnswers);
 
     setDraftRestored(true);
-  }, [state, draftRestored, contextAnswers, setValue]);
+  }, [draftRestored, draftLoaded, loadedDraft, contextAnswers, reset, setContextAnswers]);
 
   // Upload management
   const {
     uploadForQuestion,
     removeFromQuestion,
+    setFilesForQuestion,
     getFilesForQuestion,
     getAttachmentIdsForQuestion,
     isUploadingForQuestion,
   } = useMultiQuestionUpload(token || "");
 
+  // Load draft from assessment response or draft endpoint
+  useEffect(() => {
+    if (draftLoaded) return;
+    if (state.status !== "success") return;
+
+    const inlineDraft = state.data.draft ?? null;
+    if (inlineDraft) {
+      setLoadedDraft(inlineDraft);
+      setDraftLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+    (async () => {
+      if (!token) {
+        setDraftLoaded(true);
+        return;
+      }
+      const result = await loadDraft(token);
+      if (cancelled) return;
+      if (result.success) {
+        setLoadedDraft(result.data);
+      } else {
+        setLoadedDraft(null);
+      }
+      setDraftLoaded(true);
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [draftLoaded, state, token]);
+
+  // Seed attachment IDs from draft so validation + autosave include them
+  useEffect(() => {
+    if (!draftRestored || !loadedDraft) return;
+
+    for (const da of loadedDraft.answers) {
+      if (!da.attachment_ids || da.attachment_ids.length === 0) continue;
+      const files: UploadedFile[] = da.attachment_ids.map((id) => ({
+        id,
+        name: "Saved attachment",
+        size: 0,
+        progress: 100,
+      }));
+      setFilesForQuestion(da.question_id, files);
+    }
+  }, [draftRestored, loadedDraft, setFilesForQuestion]);
+
   // Build draft data for auto-save
   const draftData = useMemo(() => {
     const draftAnswers: DraftAnswer[] = Object.entries(answers)
-      .filter(([, a]) => a?.selected_option)
+      .filter(([, a]) => {
+        if (!a) return false;
+        if (a.selected_option) return true;
+        if (a.comment && a.comment.trim().length > 0) return true;
+        return false;
+      })
       .map(([questionId, a]) => ({
         question_id: questionId,
         selected_option: a.selected_option ?? null,
         comment: a.comment ?? null,
         attachment_ids: getAttachmentIdsForQuestion(questionId),
       }));
-
-    if (draftAnswers.length === 0) return null;
 
     return { answers: draftAnswers };
   }, [answers, getAttachmentIdsForQuestion]);
@@ -154,6 +204,8 @@ export function AssessmentForm() {
     (questionId: string, option: OptionType) => {
       setValue(`answers.${questionId}.selected_option`, option, {
         shouldValidate: true,
+        shouldDirty: true,
+        shouldTouch: true,
       });
     },
     [setValue]
@@ -162,7 +214,10 @@ export function AssessmentForm() {
   // Handle comment change
   const handleCommentChange = useCallback(
     (questionId: string, comment: string) => {
-      setValue(`answers.${questionId}.comment`, comment);
+      setValue(`answers.${questionId}.comment`, comment, {
+        shouldDirty: true,
+        shouldTouch: true,
+      });
     },
     [setValue]
   );
