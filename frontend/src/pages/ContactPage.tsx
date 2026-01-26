@@ -61,6 +61,8 @@ export function ContactPage() {
     }
     if (!contact.phone?.trim()) {
       newErrors.phone = "Утасны дугаар оруулна уу";
+    } else if (!/^\d{8,15}$/.test(contact.phone.trim().replace(/[\s\-+()]/g, ""))) {
+      newErrors.phone = "Утасны дугаар буруу байна";
     }
     if (!contact.position?.trim()) {
       newErrors.position = "Албан тушаал оруулна уу";
@@ -177,7 +179,14 @@ export function ContactPage() {
 
         {/* Contact Form */}
         <form onSubmit={handleSubmit}>
+          <fieldset disabled={isSubmitting} className="contents">
           <div className="surface-card p-6 mb-6">
+            {isSubmitting && (
+              <div className="flex items-center gap-2 mb-4 p-3 bg-blue-500/10 border border-blue-500/30 rounded-lg">
+                <span className="spinner spinner-sm" />
+                <span className="text-sm text-blue-400">Илгээж байна...</span>
+              </div>
+            )}
             <div className="grid gap-4 sm:grid-cols-2">
               {/* Last name (Овог) */}
               <div>
@@ -297,6 +306,8 @@ export function ContactPage() {
               <p className="text-red-400">{submitError}</p>
             </div>
           )}
+
+          </fieldset>
 
           {/* Action buttons */}
           <div className="flex flex-col sm:flex-row gap-4">

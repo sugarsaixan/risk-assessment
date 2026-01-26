@@ -84,9 +84,9 @@
 
 ### Implementation for User Story 2
 
-- [ ] T020 [US2] Add Буцах (Back) button to ContactPage in frontend/src/pages/ContactPage.tsx
-- [ ] T021 [US2] Implement back navigation that preserves form state in AssessmentContext in frontend/src/pages/ContactPage.tsx
-- [ ] T022 [US2] Verify AssessmentForm restores answers from context on return in frontend/src/pages/AssessmentForm.tsx
+- [X] T020 [US2] Add Буцах (Back) button to ContactPage in frontend/src/pages/ContactPage.tsx
+- [X] T021 [US2] Implement back navigation that preserves form state in AssessmentContext in frontend/src/pages/ContactPage.tsx
+- [X] T022 [US2] Verify AssessmentForm restores answers from context on return in frontend/src/pages/AssessmentForm.tsx
 
 **Checkpoint**: User Story 2 complete - back navigation works, answers preserved
 
@@ -102,18 +102,18 @@
 
 #### Frontend Draft Service (US3)
 
-- [ ] T023 [P] [US3] Create draft API service with saveDraft, loadDraft functions in frontend/src/services/draft.ts
-- [ ] T024 [P] [US3] Create useAutoSave hook with 30s interval and debounced change detection in frontend/src/hooks/useAutoSave.ts
-- [ ] T025 [P] [US3] Create SaveButton component with loading/success/error states in frontend/src/components/SaveButton.tsx
-- [ ] T026 [P] [US3] Create AutoSaveIndicator component showing Хадгалагдсан/Хадгалж байна status in frontend/src/components/AutoSaveIndicator.tsx
+- [X] T023 [P] [US3] Create draft API service with saveDraft, loadDraft functions in frontend/src/services/draft.ts
+- [X] T024 [P] [US3] Create useAutoSave hook with 30s interval and debounced change detection in frontend/src/hooks/useAutoSave.ts
+- [X] T025 [P] [US3] Create SaveButton component with loading/success/error states in frontend/src/components/SaveButton.tsx
+- [X] T026 [P] [US3] Create AutoSaveIndicator component showing Хадгалагдсан/Хадгалж байна status in frontend/src/components/AutoSaveIndicator.tsx
 
 #### Frontend Integration (US3)
 
-- [ ] T027 [US3] Integrate useAutoSave hook into AssessmentForm in frontend/src/pages/AssessmentForm.tsx
-- [ ] T028 [US3] Add SaveButton and AutoSaveIndicator to AssessmentForm layout in frontend/src/pages/AssessmentForm.tsx
-- [ ] T029 [US3] Update useAssessment hook to load draft on initial page load in frontend/src/hooks/useAssessment.ts
-- [ ] T030 [US3] Implement network error handling with retry logic in useAutoSave in frontend/src/hooks/useAutoSave.ts
-- [ ] T031 [US3] Add Mongolian error message "Хадгалж чадсангүй" for save failures in frontend/src/hooks/useAutoSave.ts
+- [X] T027 [US3] Integrate useAutoSave hook into AssessmentForm in frontend/src/pages/AssessmentForm.tsx
+- [X] T028 [US3] Add SaveButton and AutoSaveIndicator to AssessmentForm layout in frontend/src/pages/AssessmentForm.tsx
+- [X] T029 [US3] Update useAssessment hook to load draft on initial page load in frontend/src/hooks/useAssessment.ts
+- [X] T030 [US3] Implement network error handling with retry logic in useAutoSave in frontend/src/hooks/useAutoSave.ts
+- [X] T031 [US3] Add Mongolian error message "Хадгалж чадсангүй" for save failures in frontend/src/hooks/useAutoSave.ts
 
 **Checkpoint**: User Story 3 complete - save/resume works across devices
 
@@ -127,10 +127,10 @@
 
 ### Implementation
 
-- [ ] T032 [P] Create cleanup service with cleanup_drafts, cleanup_images methods in backend/src/services/cleanup.py
-- [ ] T033 Add DELETE /admin/cleanup/drafts endpoint in backend/src/api/admin/cleanup.py
-- [ ] T034 Add DELETE /admin/cleanup/images endpoint in backend/src/api/admin/cleanup.py
-- [ ] T035 Register cleanup router in admin API in backend/src/api/admin/__init__.py
+- [X] T032 [P] Create cleanup service with cleanup_drafts, cleanup_images methods in backend/src/services/cleanup.py
+- [X] T033 Add DELETE /admin/cleanup/drafts endpoint in backend/src/api/admin/cleanup.py
+- [X] T034 Add DELETE /admin/cleanup/images endpoint in backend/src/api/admin/cleanup.py
+- [X] T035 Register cleanup router in admin API in backend/src/api/admin/__init__.py
 
 **Checkpoint**: Admin cleanup endpoints available
 
@@ -140,12 +140,12 @@
 
 **Purpose**: Final validation and edge case handling
 
-- [ ] T100 [P] Add form validation to ContactPage (email format, phone format, required fields) in frontend/src/pages/ContactPage.tsx
-- [ ] T101 [P] Handle network failure during auto-save with user-friendly retry option in frontend/src/hooks/useAutoSave.ts
-- [ ] T102 [P] Add loading states to ContactPage during submission in frontend/src/pages/ContactPage.tsx
-- [ ] T103 [P] Ensure mobile-responsive layout for ContactPage in frontend/src/pages/ContactPage.tsx
-- [ ] T104 [P] Add rate limiting awareness to draft API calls in frontend/src/services/draft.ts
-- [ ] T105 Run quickstart.md validation scenarios
+- [X] T100 [P] Add form validation to ContactPage (email format, phone format, required fields) in frontend/src/pages/ContactPage.tsx
+- [X] T101 [P] Handle network failure during auto-save with user-friendly retry option in frontend/src/hooks/useAutoSave.ts
+- [X] T102 [P] Add loading states to ContactPage during submission in frontend/src/pages/ContactPage.tsx
+- [X] T103 [P] Ensure mobile-responsive layout for ContactPage in frontend/src/pages/ContactPage.tsx
+- [X] T104 [P] Add rate limiting awareness to draft API calls in frontend/src/services/draft.ts
+- [X] T105 Run quickstart.md validation scenarios
 
 ---
 

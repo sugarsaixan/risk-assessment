@@ -3,20 +3,24 @@
  * Contact info is collected on a separate page after questionnaire completion.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { CommentField } from "../components/CommentField";
 import { ImageUpload } from "../components/ImageUpload";
 import { ProgressBar } from "../components/ProgressBar";
 import { QuestionCard } from "../components/QuestionCard";
+import { SaveButton } from "../components/SaveButton";
 import { MN } from "../constants/mn";
 import { useAssessmentContext } from "../contexts/AssessmentContext";
 import { useAssessment, getAllQuestions, getTotalQuestions } from "../hooks/useAssessment";
+import { useAutoSave } from "../hooks/useAutoSave";
 import { ThemeToggle } from "../hooks/useTheme";
 import { useMultiQuestionUpload } from "../hooks/useUpload";
 import type { OptionType, SnapshotQuestion } from "../types/api";
+import type { DraftAnswer } from "../services/draft";
 
 interface FormAnswer {
   selected_option?: OptionType;
@@ -34,7 +38,7 @@ export function AssessmentForm() {
   const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Get context to store answers for ContactPage
-  const { setAnswers: setContextAnswers } = useAssessmentContext();
+  const { setAnswers: setContextAnswers, answers: contextAnswers } = useAssessmentContext();
 
   const {
     handleSubmit,
@@ -42,12 +46,57 @@ export function AssessmentForm() {
     setValue,
   } = useForm<FormData>({
     defaultValues: {
-      answers: {},
+      answers: contextAnswers,
     },
   });
 
   const formData = watch();
   const answers = formData.answers;
+
+  // Restore draft answers on initial load
+  const [draftRestored, setDraftRestored] = useState(false);
+  useEffect(() => {
+    if (draftRestored) return;
+    if (state.status !== "success") return;
+
+    const draft = state.data.draft;
+    if (!draft || draft.answers.length === 0) {
+      setDraftRestored(true);
+      return;
+    }
+
+    // Only restore if context answers are empty (i.e., not returning from ContactPage)
+    const hasContextAnswers = Object.keys(contextAnswers).length > 0;
+    if (hasContextAnswers) {
+      setDraftRestored(true);
+      return;
+    }
+
+    // Convert draft answers array to Record<string, FormAnswer>
+    const restoredAnswers: Record<string, FormAnswer> = {};
+    for (const da of draft.answers) {
+      const answer: FormAnswer = {};
+      if (da.selected_option) {
+        answer.selected_option = da.selected_option;
+      }
+      if (da.comment) {
+        answer.comment = da.comment;
+      }
+      restoredAnswers[da.question_id] = answer;
+    }
+
+    // Set restored answers into the form
+    for (const [qId, answer] of Object.entries(restoredAnswers)) {
+      if (answer.selected_option) {
+        setValue(`answers.${qId}.selected_option`, answer.selected_option);
+      }
+      if (answer.comment) {
+        setValue(`answers.${qId}.comment`, answer.comment);
+      }
+    }
+
+    setDraftRestored(true);
+  }, [state, draftRestored, contextAnswers, setValue]);
 
   // Upload management
   const {
@@ -57,6 +106,34 @@ export function AssessmentForm() {
     getAttachmentIdsForQuestion,
     isUploadingForQuestion,
   } = useMultiQuestionUpload(token || "");
+
+  // Build draft data for auto-save
+  const draftData = useMemo(() => {
+    const draftAnswers: DraftAnswer[] = Object.entries(answers)
+      .filter(([, a]) => a?.selected_option)
+      .map(([questionId, a]) => ({
+        question_id: questionId,
+        selected_option: a.selected_option ?? null,
+        comment: a.comment ?? null,
+        attachment_ids: getAttachmentIdsForQuestion(questionId),
+      }));
+
+    if (draftAnswers.length === 0) return null;
+
+    return { answers: draftAnswers };
+  }, [answers, getAttachmentIdsForQuestion]);
+
+  // Auto-save hook
+  const {
+    status: autoSaveStatus,
+    lastSavedAt,
+    error: autoSaveError,
+    saveNow,
+  } = useAutoSave({
+    token,
+    data: draftData,
+    enabled: state.status === "success",
+  });
 
   // Calculate progress
   const answeredCount = Object.values(answers).filter((a) => a?.selected_option).length;
@@ -246,7 +323,18 @@ export function AssessmentForm() {
               </h1>
               <p className="mt-2 text-sm label-muted">{form.respondent_name}</p>
             </div>
-            <ThemeToggle />
+            <div className="flex flex-col items-end gap-2">
+              <ThemeToggle />
+              <SaveButton
+                status={autoSaveStatus}
+                onSave={saveNow}
+              />
+              <AutoSaveIndicator
+                status={autoSaveStatus}
+                lastSavedAt={lastSavedAt}
+                error={autoSaveError}
+              />
+            </div>
           </div>
         </div>
 
