@@ -187,11 +187,22 @@ export interface SnapshotType {
   groups: SnapshotGroup[];
 }
 
+export interface AssessmentFormDraft {
+  answers: {
+    question_id: string;
+    selected_option?: OptionType | null;
+    comment?: string | null;
+    attachment_ids?: string[];
+  }[];
+  last_saved_at: string;
+}
+
 export interface AssessmentForm {
   id: string;
   respondent_name: string;
   expires_at: string;
   types: SnapshotType[];
+  draft?: AssessmentFormDraft | null;
 }
 
 // ============================================================================

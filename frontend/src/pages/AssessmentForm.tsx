@@ -1,23 +1,26 @@
 /**
- * AssessmentForm page with hierarchical Type → Group → Question structure,
- * contact info form, and validation.
+ * AssessmentForm page with hierarchical Type → Group → Question structure.
+ * Contact info is collected on a separate page after questionnaire completion.
  */
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useNavigate, useParams } from "react-router-dom";
 
+import { AutoSaveIndicator } from "../components/AutoSaveIndicator";
 import { CommentField } from "../components/CommentField";
-import { ContactForm } from "../components/ContactForm";
 import { ImageUpload } from "../components/ImageUpload";
 import { ProgressBar } from "../components/ProgressBar";
 import { QuestionCard } from "../components/QuestionCard";
+import { SaveButton } from "../components/SaveButton";
 import { MN } from "../constants/mn";
+import { useAssessmentContext } from "../contexts/AssessmentContext";
 import { useAssessment, getAllQuestions, getTotalQuestions } from "../hooks/useAssessment";
+import { useAutoSave } from "../hooks/useAutoSave";
 import { ThemeToggle } from "../hooks/useTheme";
 import { useMultiQuestionUpload } from "../hooks/useUpload";
-import { submitAssessment } from "../services/assessment";
-import type { OptionType, SnapshotQuestion, SubmissionContactInput } from "../types/api";
+import type { OptionType, SnapshotQuestion } from "../types/api";
+import type { DraftAnswer } from "../services/draft";
 
 interface FormAnswer {
   selected_option?: OptionType;
@@ -25,7 +28,6 @@ interface FormAnswer {
 }
 
 interface FormData {
-  contact: Partial<SubmissionContactInput>;
   answers: Record<string, FormAnswer>;
 }
 
@@ -33,9 +35,10 @@ export function AssessmentForm() {
   const { token } = useParams<{ token: string }>();
   const navigate = useNavigate();
   const { state } = useAssessment(token);
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [contactErrors, setContactErrors] = useState<Partial<Record<keyof SubmissionContactInput, string>>>({});
+
+  // Get context to store answers for ContactPage
+  const { setAnswers: setContextAnswers, answers: contextAnswers } = useAssessmentContext();
 
   const {
     handleSubmit,
@@ -43,14 +46,57 @@ export function AssessmentForm() {
     setValue,
   } = useForm<FormData>({
     defaultValues: {
-      contact: {},
-      answers: {},
+      answers: contextAnswers,
     },
   });
 
   const formData = watch();
   const answers = formData.answers;
-  const contact = formData.contact;
+
+  // Restore draft answers on initial load
+  const [draftRestored, setDraftRestored] = useState(false);
+  useEffect(() => {
+    if (draftRestored) return;
+    if (state.status !== "success") return;
+
+    const draft = state.data.draft;
+    if (!draft || draft.answers.length === 0) {
+      setDraftRestored(true);
+      return;
+    }
+
+    // Only restore if context answers are empty (i.e., not returning from ContactPage)
+    const hasContextAnswers = Object.keys(contextAnswers).length > 0;
+    if (hasContextAnswers) {
+      setDraftRestored(true);
+      return;
+    }
+
+    // Convert draft answers array to Record<string, FormAnswer>
+    const restoredAnswers: Record<string, FormAnswer> = {};
+    for (const da of draft.answers) {
+      const answer: FormAnswer = {};
+      if (da.selected_option) {
+        answer.selected_option = da.selected_option;
+      }
+      if (da.comment) {
+        answer.comment = da.comment;
+      }
+      restoredAnswers[da.question_id] = answer;
+    }
+
+    // Set restored answers into the form
+    for (const [qId, answer] of Object.entries(restoredAnswers)) {
+      if (answer.selected_option) {
+        setValue(`answers.${qId}.selected_option`, answer.selected_option);
+      }
+      if (answer.comment) {
+        setValue(`answers.${qId}.comment`, answer.comment);
+      }
+    }
+
+    setDraftRestored(true);
+  }, [state, draftRestored, contextAnswers, setValue]);
 
   // Upload management
   const {
@@ -60,6 +106,34 @@ export function AssessmentForm() {
     getAttachmentIdsForQuestion,
     isUploadingForQuestion,
   } = useMultiQuestionUpload(token || "");
+
+  // Build draft data for auto-save
+  const draftData = useMemo(() => {
+    const draftAnswers: DraftAnswer[] = Object.entries(answers)
+      .filter(([, a]) => a?.selected_option)
+      .map(([questionId, a]) => ({
+        question_id: questionId,
+        selected_option: a.selected_option ?? null,
+        comment: a.comment ?? null,
+        attachment_ids: getAttachmentIdsForQuestion(questionId),
+      }));
+
+    if (draftAnswers.length === 0) return null;
+
+    return { answers: draftAnswers };
+  }, [answers, getAttachmentIdsForQuestion]);
+
+  // Auto-save hook
+  const {
+    status: autoSaveStatus,
+    lastSavedAt,
+    error: autoSaveError,
+    saveNow,
+  } = useAutoSave({
+    token,
+    data: draftData,
+    enabled: state.status === "success",
+  });
 
   // Calculate progress
   const answeredCount = Object.values(answers).filter((a) => a?.selected_option).length;
@@ -74,18 +148,6 @@ export function AssessmentForm() {
     if (state.status !== "success") return [];
     return getAllQuestions(state.data);
   }, [state]);
-
-  // Handle contact field change
-  const handleContactChange = useCallback(
-    (field: keyof SubmissionContactInput, value: string) => {
-      setValue(`contact.${field}`, value);
-      // Clear error when user starts typing
-      if (contactErrors[field]) {
-        setContactErrors((prev) => ({ ...prev, [field]: undefined }));
-      }
-    },
-    [setValue, contactErrors]
-  );
 
   // Handle option selection
   const handleOptionSelect = useCallback(
@@ -145,32 +207,6 @@ export function AssessmentForm() {
     []
   );
 
-  // Validate contact fields
-  const validateContact = useCallback((): boolean => {
-    const errors: Partial<Record<keyof SubmissionContactInput, string>> = {};
-
-    if (!contact.last_name?.trim()) {
-      errors.last_name = "Овог оруулна уу";
-    }
-    if (!contact.first_name?.trim()) {
-      errors.first_name = "Нэр оруулна уу";
-    }
-    if (!contact.email?.trim()) {
-      errors.email = "И-мэйл оруулна уу";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact.email)) {
-      errors.email = "И-мэйл хаяг буруу байна";
-    }
-    if (!contact.phone?.trim()) {
-      errors.phone = "Утасны дугаар оруулна уу";
-    }
-    if (!contact.position?.trim()) {
-      errors.position = "Албан тушаал оруулна уу";
-    }
-
-    setContactErrors(errors);
-    return Object.keys(errors).length === 0;
-  }, [contact]);
-
   // Validate answer against requirements
   const validateAnswer = useCallback(
     (questionId: string): string | null => {
@@ -202,15 +238,9 @@ export function AssessmentForm() {
     [allQuestions, answers, getAttachmentIdsForQuestion]
   );
 
-  // Handle form submission
-  const onSubmit = async () => {
+  // Handle form submission - navigate to contact page
+  const onSubmit = () => {
     if (!token || state.status !== "success") return;
-
-    // Validate contact info
-    if (!validateContact()) {
-      setSubmitError("Хариулагчийн мэдээллийг бүрэн бөглөнө үү");
-      return;
-    }
 
     // Validate all answers
     const validationErrors: string[] = [];
@@ -226,49 +256,13 @@ export function AssessmentForm() {
       return;
     }
 
-    setIsSubmitting(true);
     setSubmitError(null);
 
-    // Build submission data with contact and answers
-    const submitData = {
-      contact: {
-        last_name: contact.last_name!.trim(),
-        first_name: contact.first_name!.trim(),
-        email: contact.email!.trim(),
-        phone: contact.phone!.trim(),
-        position: contact.position!.trim(),
-      },
-      answers: allQuestions.map((question) => {
-        const commentValue = answers[question.id]?.comment?.trim();
-        return {
-          question_id: question.id,
-          selected_option: answers[question.id]?.selected_option || "NO",
-          ...(commentValue ? { comment: commentValue } : {}),
-          attachment_ids: getAttachmentIdsForQuestion(question.id),
-        };
-      }),
-    };
+    // Store answers in context for ContactPage to access
+    setContextAnswers(answers);
 
-    const result = await submitAssessment(token, submitData);
-
-    setIsSubmitting(false);
-
-    if (result.success) {
-      // Navigate to results page with data
-      navigate(`/a/${token}/results`, {
-        state: { results: result.data },
-        replace: true,
-      });
-    } else {
-      setSubmitError(result.message);
-
-      // Handle specific errors
-      if (result.error === "expired") {
-        navigate("/expired", { replace: true });
-      } else if (result.error === "already_completed") {
-        navigate("/used", { replace: true });
-      }
-    }
+    // Navigate to contact page to collect contact info
+    navigate(`/a/${token}/contact`);
   };
 
   // Loading state
@@ -329,17 +323,20 @@ export function AssessmentForm() {
               </h1>
               <p className="mt-2 text-sm label-muted">{form.respondent_name}</p>
             </div>
-            <ThemeToggle />
+            <div className="flex flex-col items-end gap-2">
+              <ThemeToggle />
+              <SaveButton
+                status={autoSaveStatus}
+                onSave={saveNow}
+              />
+              <AutoSaveIndicator
+                status={autoSaveStatus}
+                lastSavedAt={lastSavedAt}
+                error={autoSaveError}
+              />
+            </div>
           </div>
         </div>
-
-        {/* Contact Form */}
-        <ContactForm
-          value={contact}
-          onChange={handleContactChange}
-          errors={contactErrors}
-          className="mb-6"
-        />
 
         {/* Progress Bar */}
         <div className="surface-card p-4 mb-8">
@@ -446,14 +443,14 @@ export function AssessmentForm() {
             </div>
           )}
 
-          {/* Submit button */}
+          {/* Submit button - navigates to contact page */}
           <div className="pt-6">
             <button
               type="submit"
-              disabled={isSubmitting || answeredCount < totalQuestions}
+              disabled={answeredCount < totalQuestions}
               className="btn-cta"
             >
-              {isSubmitting ? MN.assessment.submitting : MN.assessment.submitAssessment}
+              {MN.assessment.submitAssessment}
             </button>
 
             {answeredCount < totalQuestions && (

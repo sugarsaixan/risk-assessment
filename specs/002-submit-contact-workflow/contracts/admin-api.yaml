@@ -1,0 +1,177 @@
+openapi: 3.0.3
+info:
+  title: Risk Assessment Admin API - Cleanup Endpoints
+  description: |
+    New admin endpoints for draft and orphaned data cleanup.
+    Extends the existing admin API from 001-risk-assessment-survey.
+  version: 1.1.0
+
+servers:
+  - url: /api/admin
+    description: Admin API (requires X-API-Key authentication)
+
+security:
+  - ApiKeyAuth: []
+
+paths:
+  /cleanup/drafts:
+    delete:
+      summary: Cleanup orphaned drafts
+      description: |
+        Delete draft records for expired assessments.
+        Optionally also cleans up orphaned image attachments.
+        This is an admin-only batch operation.
+      operationId: cleanupDrafts
+      tags:
+        - Cleanup
+      parameters:
+        - name: older_than_days
+          in: query
+          required: false
+          description: Only cleanup drafts for assessments expired more than N days ago
+          schema:
+            type: integer
+            minimum: 0
+            default: 30
+        - name: include_images
+          in: query
+          required: false
+          description: Also delete orphaned images from storage
+          schema:
+            type: boolean
+            default: false
+        - name: dry_run
+          in: query
+          required: false
+          description: Preview what would be deleted without actually deleting
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Cleanup completed (or preview returned)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CleanupResponse'
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Cleanup operation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+  /cleanup/images:
+    delete:
+      summary: Cleanup orphaned images
+      description: |
+        Delete images from storage that are not referenced by any answer.
+        This can happen when images are uploaded but assessment is never submitted.
+      operationId: cleanupImages
+      tags:
+        - Cleanup
+      parameters:
+        - name: older_than_days
+          in: query
+          required: false
+          description: Only cleanup images uploaded more than N days ago
+          schema:
+            type: integer
+            minimum: 0
+            default: 30
+        - name: dry_run
+          in: query
+          required: false
+          description: Preview what would be deleted without actually deleting
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Cleanup completed (or preview returned)
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageCleanupResponse'
+        '401':
+          description: Invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: Admin API key
+
+  schemas:
+    CleanupResponse:
+      type: object
+      required:
+        - drafts_deleted
+        - assessments_affected
+      properties:
+        drafts_deleted:
+          type: integer
+          description: Number of draft records deleted
+        assessments_affected:
+          type: integer
+          description: Number of assessments whose drafts were deleted
+        images_deleted:
+          type: integer
+          description: Number of images deleted (if include_images=true)
+        storage_freed_bytes:
+          type: integer
+          description: Approximate storage freed in bytes
+        dry_run:
+          type: boolean
+          description: Whether this was a preview (no actual deletion)
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              assessment_id:
+                type: string
+                format: uuid
+              expired_at:
+                type: string
+                format: date-time
+              draft_size_bytes:
+                type: integer
+
+    ImageCleanupResponse:
+      type: object
+      required:
+        - images_deleted
+      properties:
+        images_deleted:
+          type: integer
+          description: Number of orphaned images deleted
+        storage_freed_bytes:
+          type: integer
+          description: Approximate storage freed in bytes
+        dry_run:
+          type: boolean
+          description: Whether this was a preview (no actual deletion)
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+        - message
+      properties:
+        error:
+          type: string
+        message:
+          type: string

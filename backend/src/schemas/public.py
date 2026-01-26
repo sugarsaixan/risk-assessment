@@ -1,11 +1,12 @@
 """Pydantic schemas for public API endpoints."""
 
-from typing import Any
+from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
 from src.models.enums import RiskRating
 from src.schemas.answer import AnswerInput
+from src.schemas.draft import DraftResponse
 from src.schemas.submission_contact import SubmissionContactInput
 
 
@@ -21,6 +22,10 @@ class AssessmentFormResponse(BaseModel):
     types: list[dict[str, Any]] = Field(
         ...,
         description="Questionnaire types with groups and questions from snapshot",
+    )
+    draft: Optional[DraftResponse] = Field(
+        None,
+        description="Saved draft answers if any exist",
     )
 
 
