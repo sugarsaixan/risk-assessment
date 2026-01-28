@@ -228,7 +228,7 @@ Phase 2: Foundational is now COMPLETE ✓
                                                                          
   To run backend:                                                        
   cd backend                                                             
-  uvicorn src.main:app --reload                                          
+  uvicorn src.main:app --reload
                                                                          
   Let me know if you see any errors.
 

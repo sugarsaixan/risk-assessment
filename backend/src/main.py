@@ -68,10 +68,6 @@ Public endpoints are rate-limited and accessed via one-time tokens.
             "description": "Question and option management (Admin)",
         },
         {
-            "name": "respondents",
-            "description": "Respondent management (Admin)",
-        },
-        {
             "name": "assessments",
             "description": "Assessment link creation and results (Admin)",
         },

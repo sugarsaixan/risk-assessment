@@ -6,12 +6,23 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from src.models.enums import AssessmentStatus
+from src.schemas.respondent import RespondentInline
 
 
 class AssessmentCreate(BaseModel):
-    """Schema for creating an assessment."""
+    """Schema for creating an assessment with inline respondent data from Odoo."""
 
-    respondent_id: UUID = Field(..., description="Respondent being assessed")
+    respondent: RespondentInline = Field(..., description="Inline respondent data from Odoo")
+    employee_id: str | None = Field(
+        None,
+        max_length=100,
+        description="Odoo employee ID who is creating this assessment",
+    )
+    employee_name: str | None = Field(
+        None,
+        max_length=300,
+        description="Display name of the Odoo employee",
+    )
     selected_type_ids: list[UUID] = Field(
         ...,
         min_length=1,
@@ -29,6 +40,7 @@ class AssessmentCreated(BaseModel):
     """Schema for assessment creation response."""
 
     id: UUID
+    respondent_id: UUID = Field(..., description="Internal respondent UUID (created or matched)")
     url: str = Field(..., description="Public assessment URL with token")
     expires_at: datetime
 
@@ -40,6 +52,9 @@ class AssessmentResponse(BaseModel):
 
     id: UUID
     respondent_id: UUID
+    respondent_odoo_id: str | None = None
+    employee_id: str | None = None
+    employee_name: str | None = None
     selected_type_ids: list[UUID]
     expires_at: datetime
     status: AssessmentStatus
@@ -54,6 +69,9 @@ class AssessmentList(BaseModel):
 
     id: UUID
     respondent_id: UUID
+    respondent_odoo_id: str | None = None
+    employee_id: str | None = None
+    employee_name: str | None = None
     status: AssessmentStatus
     expires_at: datetime
     created_at: datetime

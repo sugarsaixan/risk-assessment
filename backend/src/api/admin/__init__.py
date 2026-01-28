@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter
 
-from src.api.admin import assessments, cleanup, groups, questions, respondents, types
+from src.api.admin import assessments, cleanup, groups, questions, types
 
 # Create main admin router
 admin_router = APIRouter(prefix="/admin", tags=["admin"])
@@ -11,7 +11,6 @@ admin_router = APIRouter(prefix="/admin", tags=["admin"])
 admin_router.include_router(types.router)
 admin_router.include_router(groups.router)
 admin_router.include_router(questions.router)
-admin_router.include_router(respondents.router)
 admin_router.include_router(assessments.router)
 admin_router.include_router(cleanup.router)
 

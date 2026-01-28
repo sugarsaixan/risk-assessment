@@ -38,10 +38,9 @@ from src.schemas.questionnaire_type import (
     QuestionnaireTypeUpdate,
 )
 from src.schemas.respondent import (
-    RespondentCreate,
+    RespondentInline,
     RespondentList,
     RespondentResponse,
-    RespondentUpdate,
 )
 
 __all__ = [
@@ -72,8 +71,7 @@ __all__ = [
     "QuestionOptionsSet",
     "QuestionOptionResponse",
     # Respondent
-    "RespondentCreate",
-    "RespondentUpdate",
+    "RespondentInline",
     "RespondentResponse",
     "RespondentList",
     # Assessment
