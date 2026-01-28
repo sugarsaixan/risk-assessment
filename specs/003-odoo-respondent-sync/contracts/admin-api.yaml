@@ -1,0 +1,327 @@
+openapi: 3.1.0
+info:
+  title: Risk Assessment Admin API - Odoo Integration Changes
+  version: 2.0.0
+  description: |
+    API contract changes for the Odoo ERP Respondent Integration feature.
+    Only modified and new endpoints are documented here.
+
+paths:
+  /admin/assessments:
+    post:
+      operationId: createAssessment
+      summary: Create assessment with inline respondent and optional employee data
+      description: |
+        Creates a new assessment with respondent data provided inline.
+        The system will create a new respondent or update an existing one
+        based on the provided odoo_id before creating the assessment.
+        Optionally stores employee data (who initiated the assessment from Odoo).
+      tags: [assessments]
+      security:
+        - apiKey: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssessmentCreateWithRespondent'
+      responses:
+        '201':
+          description: Assessment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentCreated'
+        '400':
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidKind:
+                  summary: Invalid respondent kind
+                  value:
+                    detail: "kind must be ORG or PERSON"
+                missingRegistrationNo:
+                  summary: Missing registration_no for ORG
+                  value:
+                    detail: "registration_no is required for ORG respondents"
+                invalidTypes:
+                  summary: Invalid questionnaire type IDs
+                  value:
+                    detail: "Invalid or inactive questionnaire type IDs: [uuid1, uuid2]"
+                noQuestions:
+                  summary: No active questions
+                  value:
+                    detail: "Selected questionnaire types have no active questions"
+        '401':
+          description: Invalid or missing API key
+    get:
+      operationId: listAssessments
+      summary: List assessments with optional Odoo ID and employee ID filters
+      description: |
+        List assessments with pagination and filtering.
+        Now supports filtering by respondent's Odoo ID and by employee ID
+        in addition to existing respondent_id and status filters.
+      tags: [assessments]
+      security:
+        - apiKey: []
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 20
+        - name: respondent_id
+          in: query
+          description: Filter by internal respondent UUID (existing)
+          schema:
+            type: string
+            format: uuid
+        - name: odoo_id
+          in: query
+          description: Filter by respondent Odoo ID (new)
+          schema:
+            type: string
+            maxLength: 100
+        - name: employee_id
+          in: query
+          description: Filter by Odoo employee ID who created the assessment (new)
+          schema:
+            type: string
+            maxLength: 100
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [PENDING, COMPLETED, EXPIRED]
+      responses:
+        '200':
+          description: Paginated list of assessments
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedAssessments'
+        '401':
+          description: Invalid or missing API key
+
+  /admin/assessments/{assessment_id}:
+    get:
+      operationId: getAssessment
+      summary: Get assessment details
+      tags: [assessments]
+      security:
+        - apiKey: []
+      parameters:
+        - name: assessment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Assessment details including employee data if present
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssessmentResponse'
+        '404':
+          description: Assessment not found
+        '401':
+          description: Invalid or missing API key
+
+  /admin/assessments/{assessment_id}/results:
+    get:
+      operationId: getAssessmentResults
+      summary: Get assessment results
+      description: Unchanged from previous version
+      tags: [assessments]
+      security:
+        - apiKey: []
+      parameters:
+        - name: assessment_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: breakdown
+          in: query
+          schema:
+            type: boolean
+            default: false
+      responses:
+        '200':
+          description: Assessment results with scores
+        '404':
+          description: Assessment not found
+        '401':
+          description: Invalid or missing API key
+
+  # REMOVED ENDPOINTS (documented for reference)
+  # /admin/respondents - POST (Create respondent) - REMOVED
+  # /admin/respondents - GET (List respondents) - REMOVED
+  # /admin/respondents/{id} - GET (Get respondent) - REMOVED
+  # /admin/respondents/{id} - PATCH (Update respondent) - REMOVED
+
+components:
+  securitySchemes:
+    apiKey:
+      type: apiKey
+      name: X-API-Key
+      in: header
+
+  schemas:
+    RespondentInline:
+      type: object
+      description: Respondent data provided inline from Odoo
+      required:
+        - odoo_id
+        - name
+        - kind
+      properties:
+        odoo_id:
+          type: string
+          maxLength: 100
+          description: Unique respondent identifier from Odoo (supports integer IDs and XML/external IDs)
+          example: "res.partner_42"
+        name:
+          type: string
+          minLength: 1
+          maxLength: 300
+          description: Respondent name
+          example: "Монгол Компани ХХК"
+        kind:
+          type: string
+          enum: [ORG, PERSON]
+          description: Respondent type
+        registration_no:
+          type: string
+          maxLength: 50
+          nullable: true
+          description: Organization registration or person ID number. Required for ORG, optional for PERSON.
+          example: "1234567"
+
+    AssessmentCreateWithRespondent:
+      type: object
+      description: Assessment creation request with inline respondent data and optional employee data
+      required:
+        - respondent
+        - selected_type_ids
+      properties:
+        respondent:
+          $ref: '#/components/schemas/RespondentInline'
+        employee_id:
+          type: string
+          maxLength: 100
+          nullable: true
+          description: Odoo employee ID who is creating this assessment (optional, for audit trail)
+          example: "hr.employee_15"
+        employee_name:
+          type: string
+          maxLength: 300
+          nullable: true
+          description: Display name of the Odoo employee (optional, for audit trail)
+          example: "Батболд Д."
+        selected_type_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+          minItems: 1
+          description: QuestionnaireType IDs to include
+        expires_in_days:
+          type: integer
+          minimum: 1
+          maximum: 365
+          default: 30
+          description: Days until link expires
+
+    AssessmentCreated:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        respondent_id:
+          type: string
+          format: uuid
+          description: Internal respondent UUID (created or matched)
+        url:
+          type: string
+          description: Public assessment URL with token
+        expires_at:
+          type: string
+          format: date-time
+
+    AssessmentResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        respondent_id:
+          type: string
+          format: uuid
+        respondent_odoo_id:
+          type: string
+          nullable: true
+          description: Odoo ID of the respondent (null for legacy respondents)
+        employee_id:
+          type: string
+          nullable: true
+          description: Odoo employee ID who created this assessment (null if not provided)
+        employee_name:
+          type: string
+          nullable: true
+          description: Display name of the employee who created this assessment (null if not provided)
+        selected_type_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+        expires_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [PENDING, COMPLETED, EXPIRED]
+        completed_at:
+          type: string
+          format: date-time
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+
+    PaginatedAssessments:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssessmentResponse'
+        total:
+          type: integer
+        page:
+          type: integer
+        page_size:
+          type: integer
+        total_pages:
+          type: integer
+
+    ErrorResponse:
+      type: object
+      properties:
+        detail:
+          type: string

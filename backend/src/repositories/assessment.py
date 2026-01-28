@@ -24,6 +24,8 @@ class AssessmentRepository:
         selected_type_ids: list[UUID],
         questions_snapshot: dict[str, Any],
         expires_at: datetime,
+        employee_id: str | None = None,
+        employee_name: str | None = None,
     ) -> Assessment:
         """Create a new assessment."""
         assessment = Assessment(
@@ -32,6 +34,8 @@ class AssessmentRepository:
             selected_type_ids=selected_type_ids,
             questions_snapshot=questions_snapshot,
             expires_at=expires_at,
+            employee_id=employee_id,
+            employee_name=employee_name,
         )
         self.session.add(assessment)
         await self.session.flush()
@@ -57,6 +61,7 @@ class AssessmentRepository:
         *,
         respondent_id: UUID | None = None,
         status: AssessmentStatus | None = None,
+        employee_id: str | None = None,
         offset: int = 0,
         limit: int = 100,
     ) -> list[Assessment]:
@@ -69,6 +74,9 @@ class AssessmentRepository:
         if status is not None:
             stmt = stmt.where(Assessment.status == status)
 
+        if employee_id is not None:
+            stmt = stmt.where(Assessment.employee_id == employee_id)
+
         stmt = stmt.offset(offset).limit(limit)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
@@ -78,6 +86,7 @@ class AssessmentRepository:
         *,
         respondent_id: UUID | None = None,
         status: AssessmentStatus | None = None,
+        employee_id: str | None = None,
     ) -> int:
         """Count assessments with optional filtering."""
         from sqlalchemy import func
@@ -89,6 +98,9 @@ class AssessmentRepository:
 
         if status is not None:
             stmt = stmt.where(Assessment.status == status)
+
+        if employee_id is not None:
+            stmt = stmt.where(Assessment.employee_id == employee_id)
 
         result = await self.session.execute(stmt)
         return result.scalar_one()

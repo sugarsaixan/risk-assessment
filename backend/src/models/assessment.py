@@ -73,6 +73,17 @@ class Assessment(BaseModel):
         nullable=True,
         comment="Submission timestamp",
     )
+    employee_id: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        index=True,
+        comment="Odoo employee ID who created this assessment",
+    )
+    employee_name: Mapped[str | None] = mapped_column(
+        String(300),
+        nullable=True,
+        comment="Display name of the Odoo employee",
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

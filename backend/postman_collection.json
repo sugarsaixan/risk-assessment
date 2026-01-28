@@ -37,6 +37,11 @@
       "type": "string"
     },
     {
+      "key": "odoo_id",
+      "value": "res.partner_42",
+      "type": "string"
+    },
+    {
       "key": "assessment_id",
       "value": "",
       "type": "string"
@@ -511,137 +516,10 @@
       ]
     },
     {
-      "name": "Admin - Respondents",
-      "item": [
-        {
-          "name": "Create Respondent",
-          "event": [
-            {
-              "listen": "test",
-              "script": {
-                "exec": [
-                  "if (pm.response.code === 201) {",
-                  "    var jsonData = pm.response.json();",
-                  "    pm.collectionVariables.set('respondent_id', jsonData.id);",
-                  "}"
-                ],
-                "type": "text/javascript"
-              }
-            }
-          ],
-          "request": {
-            "method": "POST",
-            "header": [
-              {
-                "key": "X-API-Key",
-                "value": "{{api_key}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"kind\": \"ORG\",\n  \"name\": \"Монгол Банк ХХК\",\n  \"registration_no\": \"1234567\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/admin/respondents",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "respondents"]
-            },
-            "description": "Create a new respondent (organization or person)."
-          }
-        },
-        {
-          "name": "List Respondents",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "X-API-Key",
-                "value": "{{api_key}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/admin/respondents?page=1&page_size=20",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "respondents"],
-              "query": [
-                {
-                  "key": "page",
-                  "value": "1"
-                },
-                {
-                  "key": "page_size",
-                  "value": "20"
-                },
-                {
-                  "key": "kind",
-                  "value": "ORG",
-                  "disabled": true
-                },
-                {
-                  "key": "search",
-                  "value": "Монгол",
-                  "disabled": true
-                }
-              ]
-            },
-            "description": "List all respondents with pagination and filtering."
-          }
-        },
-        {
-          "name": "Get Respondent",
-          "request": {
-            "method": "GET",
-            "header": [
-              {
-                "key": "X-API-Key",
-                "value": "{{api_key}}"
-              }
-            ],
-            "url": {
-              "raw": "{{base_url}}/admin/respondents/{{respondent_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "respondents", "{{respondent_id}}"]
-            },
-            "description": "Get a respondent by ID."
-          }
-        },
-        {
-          "name": "Update Respondent",
-          "request": {
-            "method": "PATCH",
-            "header": [
-              {
-                "key": "X-API-Key",
-                "value": "{{api_key}}"
-              },
-              {
-                "key": "Content-Type",
-                "value": "application/json"
-              }
-            ],
-            "body": {
-              "mode": "raw",
-              "raw": "{\n  \"name\": \"Монгол Банк ХХК (шинэчилсэн)\"\n}"
-            },
-            "url": {
-              "raw": "{{base_url}}/admin/respondents/{{respondent_id}}",
-              "host": ["{{base_url}}"],
-              "path": ["admin", "respondents", "{{respondent_id}}"]
-            },
-            "description": "Update a respondent."
-          }
-        }
-      ]
-    },
-    {
       "name": "Admin - Assessments",
       "item": [
         {
-          "name": "Create Assessment",
+          "name": "Create Assessment (with Odoo respondent)",
           "event": [
             {
               "listen": "test",
@@ -650,6 +528,7 @@
                   "if (pm.response.code === 201) {",
                   "    var jsonData = pm.response.json();",
                   "    pm.collectionVariables.set('assessment_id', jsonData.id);",
+                  "    pm.collectionVariables.set('respondent_id', jsonData.respondent_id);",
                   "    // Extract token from URL",
                   "    var url = jsonData.url;",
                   "    var token = url.split('/a/')[1];",
@@ -676,14 +555,14 @@
             ],
             "body": {
               "mode": "raw",
-              "raw": "{\n  \"respondent_id\": \"{{respondent_id}}\",\n  \"selected_type_ids\": [\"{{type_id}}\"],\n  \"expires_in_days\": 30\n}"
+              "raw": "{\n  \"respondent\": {\n    \"odoo_id\": \"{{odoo_id}}\",\n    \"name\": \"Монгол Банк ХХК\",\n    \"kind\": \"ORG\",\n    \"registration_no\": \"1234567\"\n  },\n  \"employee_id\": \"hr.employee_15\",\n  \"employee_name\": \"Батболд Д.\",\n  \"selected_type_ids\": [\"{{type_id}}\"],\n  \"expires_in_days\": 30\n}"
             },
             "url": {
               "raw": "{{base_url}}/admin/assessments",
               "host": ["{{base_url}}"],
               "path": ["admin", "assessments"]
             },
-            "description": "Create a new assessment with a one-time access link. The snapshot will include the Type → Group → Questions hierarchy."
+            "description": "Create an assessment with inline respondent data from Odoo. The system creates or matches the respondent by odoo_id, stores optional employee data, and returns the assessment link."
           }
         },
         {
@@ -715,13 +594,25 @@
                   "disabled": true
                 },
                 {
+                  "key": "odoo_id",
+                  "value": "{{odoo_id}}",
+                  "description": "Filter by respondent Odoo ID",
+                  "disabled": true
+                },
+                {
+                  "key": "employee_id",
+                  "value": "hr.employee_15",
+                  "description": "Filter by Odoo employee ID",
+                  "disabled": true
+                },
+                {
                   "key": "status",
                   "value": "PENDING",
                   "disabled": true
                 }
               ]
             },
-            "description": "List all assessments with pagination and filtering."
+            "description": "List all assessments with pagination and filtering. Supports filtering by odoo_id (respondent Odoo ID) and employee_id."
           }
         },
         {

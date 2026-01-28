@@ -27,19 +27,25 @@ class AssessmentService:
     async def create_assessment(self, data: AssessmentCreate) -> AssessmentCreated:
         """Create a new assessment with question snapshot.
 
+        Accepts inline respondent data from Odoo, performs respondent upsert,
+        stores optional employee data, and returns the assessment link.
+
         Args:
-            data: Assessment creation data.
+            data: Assessment creation data with inline respondent + employee.
 
         Returns:
-            AssessmentCreated with ID, URL, and expiration.
+            AssessmentCreated with ID, respondent_id, URL, and expiration.
 
         Raises:
-            ValueError: If respondent not found or types invalid.
+            ValueError: If types invalid or no active questions.
         """
-        # Verify respondent exists
-        respondent = await self.respondent_repo.get_by_id(data.respondent_id)
-        if respondent is None:
-            raise ValueError(f"Respondent not found: {data.respondent_id}")
+        # Upsert respondent from Odoo-provided data
+        respondent = await self.respondent_repo.upsert_from_odoo(
+            odoo_id=data.respondent.odoo_id,
+            name=data.respondent.name,
+            kind=data.respondent.kind,
+            registration_no=data.respondent.registration_no,
+        )
 
         # Create question snapshot
         snapshot = await self.snapshot_service.create_snapshot(data.selected_type_ids)
@@ -55,13 +61,15 @@ class AssessmentService:
         # Calculate expiration
         expires_at = datetime.now(timezone.utc) + timedelta(days=data.expires_in_days)
 
-        # Create assessment
+        # Create assessment with employee data
         assessment = await self.assessment_repo.create(
-            respondent_id=data.respondent_id,
+            respondent_id=respondent.id,
             token_hash=token_hash,
             selected_type_ids=data.selected_type_ids,
             questions_snapshot=snapshot,
             expires_at=expires_at,
+            employee_id=data.employee_id,
+            employee_name=data.employee_name,
         )
 
         # Generate public URL
@@ -69,6 +77,7 @@ class AssessmentService:
 
         return AssessmentCreated(
             id=assessment.id,
+            respondent_id=respondent.id,
             url=url,
             expires_at=expires_at,
         )
@@ -153,6 +162,7 @@ class AssessmentService:
         *,
         respondent_id: UUID | None = None,
         status: AssessmentStatus | None = None,
+        employee_id: str | None = None,
         offset: int = 0,
         limit: int = 100,
     ) -> tuple[list[Assessment], int]:
@@ -164,11 +174,13 @@ class AssessmentService:
         assessments = await self.assessment_repo.get_all(
             respondent_id=respondent_id,
             status=status,
+            employee_id=employee_id,
             offset=offset,
             limit=limit,
         )
         total = await self.assessment_repo.count(
             respondent_id=respondent_id,
             status=status,
+            employee_id=employee_id,
         )
         return assessments, total

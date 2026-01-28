@@ -2,7 +2,8 @@
 
 from typing import TYPE_CHECKING
 
-from sqlalchemy import Enum as SAEnum, String
+from sqlalchemy import Enum as SAEnum
+from sqlalchemy import String
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.models.base import BaseModelWithTimestamps
@@ -39,6 +40,13 @@ class Respondent(BaseModelWithTimestamps):
         String(50),
         nullable=True,
         comment="Org registration or person ID",
+    )
+    odoo_id: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        unique=True,
+        index=True,
+        comment="Unique respondent identifier from Odoo ERP",
     )
 
     # Relationships
