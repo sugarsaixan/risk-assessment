@@ -9,6 +9,7 @@ from sqlalchemy import (
     ForeignKey,
     Integer,
     Numeric,
+    String,
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
@@ -83,6 +84,43 @@ class AssessmentScore(BaseModel):
         SAEnum(RiskRating, name="risk_rating"),
         nullable=False,
         comment="LOW/MEDIUM/HIGH",
+    )
+
+    # New risk score calculation fields (nullable for backward compatibility)
+    classification_label: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+        comment="Group-level: Mongolian classification (Хэвийн, Хянахуйц, etc.)",
+    )
+    probability_score: Mapped[Decimal | None] = mapped_column(
+        Numeric(8, 4),
+        nullable=True,
+        comment="Type-level: AVERAGE + 0.618*STDEV of group sums",
+    )
+    consequence_score: Mapped[Decimal | None] = mapped_column(
+        Numeric(8, 4),
+        nullable=True,
+        comment="Type-level: AVERAGE + 0.618*STDEV of group numerics",
+    )
+    risk_value: Mapped[int | None] = mapped_column(
+        Integer,
+        nullable=True,
+        comment="Type/Overall: rounded risk product or aggregation",
+    )
+    risk_grade: Mapped[str | None] = mapped_column(
+        String(3),
+        nullable=True,
+        comment="Type/Overall: letter grade AAA through D",
+    )
+    risk_description: Mapped[str | None] = mapped_column(
+        String(100),
+        nullable=True,
+        comment="Type/Overall: Mongolian risk description",
+    )
+    insurance_decision: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+        comment="Overall only: Даатгана or Даатгахгүй",
     )
 
     def __repr__(self) -> str:

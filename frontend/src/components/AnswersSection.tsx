@@ -14,6 +14,8 @@ interface AnswersSectionProps {
 
 function AnswerRow({ answer }: { answer: AnswerBreakdown }) {
   const isYes = answer.selected_option === "YES";
+  // Color based on score_awarded: 0 = green (good), 1+ = red (issue found)
+  const hasIssue = answer.score_awarded > 0;
 
   return (
     <div className="py-3 border-b border-[var(--border)] last:border-b-0">
@@ -24,9 +26,9 @@ function AnswerRow({ answer }: { answer: AnswerBreakdown }) {
         <div className="flex items-center gap-2 shrink-0">
           <span
             className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${
-              isYes
-                ? "bg-green-500/10 text-green-400"
-                : "bg-red-500/10 text-red-400"
+              hasIssue
+                ? "bg-red-500/10 text-red-400"
+                : "bg-green-500/10 text-green-400"
             }`}
           >
             {isYes ? MN.answers.yes : MN.answers.no}

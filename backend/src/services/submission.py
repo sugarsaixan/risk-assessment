@@ -197,6 +197,11 @@ class SubmissionService:
                     max_score=ts["max_score"],
                     percentage=ts["percentage"],
                     risk_rating=ts["risk_rating"],
+                    probability_score=ts.get("probability_score"),
+                    consequence_score=ts.get("consequence_score"),
+                    risk_value=ts.get("risk_value"),
+                    risk_grade=ts.get("risk_grade"),
+                    risk_description=ts.get("risk_description"),
                     groups=[
                         GroupResult(
                             group_id=gs["group_id"],
@@ -205,6 +210,8 @@ class SubmissionService:
                             max_score=gs["max_score"],
                             percentage=gs["percentage"],
                             risk_rating=gs["risk_rating"],
+                            sum_score=gs.get("sum_score"),
+                            classification_label=gs.get("classification_label"),
                         )
                         for gs in ts.get("groups", [])
                     ],
@@ -216,6 +223,10 @@ class SubmissionService:
                 max_score=overall_score["max_score"],
                 percentage=overall_score["percentage"],
                 risk_rating=overall_score["risk_rating"],
+                total_risk=overall_score.get("risk_value"),
+                total_grade=overall_score.get("risk_grade"),
+                risk_description=overall_score.get("risk_description"),
+                insurance_decision=overall_score.get("insurance_decision"),
             ),
         )
 

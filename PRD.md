@@ -291,3 +291,32 @@ Fresh Database	"alembic upgrade head"	Runs all scripts; creates tables and the v
 Existing Database	"alembic stamp head"	Does not run scripts; simply tells Alembic the DB is already at the latest version.
 
 --- 
+
+
+each group has its own result based on sum score of its questions;
+   - =IF(F14=0,"Хэвийн",IF(F14=1,"Хянахуйц",IF(F14=2,"Анхаарах",IF(F14=3,"Ноцтой",IF(OR(F14=4,F14=5),"Аюултай",FALSE)))))
+each type has its own result 
+
+МАГАДЛАЛЫН ОНОО     - =AVERAGE(GROUP RESULTS)+0.618*STDEV(GROUP RESULTS)
+ҮР ДАГАВРЫН ОНОО    - =AVERAGE(each group(=IF(H38="Хэвийн",1,IF(H38="Хянахуйц",2,IF(H38="Анхаарах",3,IF(H38="Ноцтой",4,5))))))+0.618*STDEV(each group(=IF(H38="Хэвийн",1,IF(H38="Хянахуйц",2,IF(H38="Анхаарах",3,IF(H38="Ноцтой",4,5))))))
+ЭРСДЭЛ              - МАГАДЛАЛЫН ОНОО * ҮР ДАГАВРЫН ОНОО
+ЭРСДЭЛИЙН ЗЭРЭГЛЭЛ  - =IF(H68=1,"AAA",IF(AND(2<=H68,H68<=3),"AA",IF(H68=4,"A",IF(H68=5,"BBB",IF(H68=6,"BB",IF(AND(7<=H68,H68<=9),"B",IF(AND(10<=H68,H68<=11),"CCC",IF(AND(12<=H68,H68<=14),"CC",IF(H68=15,"C",IF(H68=16,"DDD",IF(AND(17<=H68,H68)<=20,"DD","D")))))))))))
+ЭРСДЭЛИЙН ТАЙЛБАР   - 
+    Зэрэглэл	Тайлбар
+    ААА	Эрсдэл маш бага
+    АА	Эрсдэл бага
+    А	Анхаарахгүй, эрсдэл бага
+    BBB	Нийцэхүйц, эрсдэл доогуур
+    BB	Авахуйц, эрсдэл доогуур
+    B	Хянахуйц, эрсдэл доогуур
+    CCC	Хянахуйц, эрсдэл дунд
+    CC	Анхаарах, эрсдэл дунд
+    C	Нэн анхаарах, эрсдэл дунд
+    DDD	Ноцтой, эрсдэл дээгүүр
+    DD	Нэн ноцтой, эрсдэл дээгүүр
+    D	Аюултай, эрсдэл өндөр
+
+
+НИЙТ ЭРСДЭЛ = =AVERAGE(each types)+0.618*STDEV(each types)
+
+
