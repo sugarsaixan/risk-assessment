@@ -4,9 +4,13 @@ Run with: python -m src.seeds.questions_seed
 """
 
 import asyncio
+import logging
+from dataclasses import dataclass, field
 from decimal import Decimal
+from pathlib import Path
 from uuid import uuid4
 
+from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.core.database import async_session_factory
@@ -17,446 +21,778 @@ from src.models.questionnaire_type import QuestionnaireType
 from src.models.enums import OptionType, ScoringMethod
 
 
-# Seed data parsed from questions/*.md files
-SEED_DATA = [
-    {
-        "name": "ГАЛЫН АЮУЛГҮЙ БАЙДАЛ",
-        "groups": [
-            {
-                "name": "Галын хор",
-                "questions": [
-                    "Лац түгжээ, шаланк, резин жийрэг нь бүрэн бүтэн эсэх",
-                    "Монометр нь ногоон түвшинг зааж байгаа эсэх",
-                    "Галын хорыг сүүлийн 6 сарын дотор туршиж үзсэн эсэх",
-                    "Галын хорын ангилал нь тухайн байгууламжинд тохирох эсэх",
-                    "Галын хорын тэмдэг, тэмдэглэгээ байгаа эсэх",
-                ],
-            },
-            {
-                "name": "Галд шатах материал",
-                "questions": [
-                    "Галд шатах материалууд дийлэнх хувийг эзэлдэг эсэх",
-                    "Шатах материалыг 3 метрээс дээш өндөрт хураасан эсэх",
-                    "Цахилгааны залгуур, өндөр хүчдэлийг налуулан бараа материал хураасан эсэх",
-                    "Тухайн бараа материал, үхэлд хүргэх химийн хорт хий ялгаруулдаг эсэх",
-                    "Тухайн бараа материал галд тэсвэргүй, хурдан шатамхай эсэх",
-                ],
-            },
-            {
-                "name": "Цахилгааны гал",
-                "questions": [
-                    "Цахилгааны шитийн утаснууд эмх цэгцтэй стандартын дагуу суурилагдсан эсэх",
-                    "Цахилгаан утаснууд тоос шороонд их дарагдсан эсэх",
-                    "Хуваарилах байгууламж гэрэлтүүлэг, тэмдэг тэмдэглэгээ, газардуулгын акттай эсэх",
-                    "Хуваарилах самбарын утаснууд харлаагүй, масслаагүй, шатаагүй, орооцолдоогүй эсэх",
-                    "Цахилгаан самбарын толгой автоматыг унахуйц ампер суурилуулсан эсэх",
-                ],
-            },
-            {
-                "name": "Цахилгаан утас",
-                "questions": [
-                    "Нэг залгуураас 3 болон түүнээс дээш залгуур эх сурвалж авсан эсэх",
-                    "Цахилгаан розетик хананаас мултарсан, ил гарсан, бүрхүүл нь хагарсан эсэх",
-                    "Гадна талын цахилгаан утасны найдвартай байдлыг бүрэн хангасан эсэх",
-                    "Цахилгааны пускатель байгаа эсэх",
-                    "Доторх цахилгаан утаснууд эмх цэгцтэй монтажлагдсан эсэх",
-                ],
-            },
-            {
-                "name": "Галын дотоод хяналт",
-                "questions": [
-                    "Галын утаа мэдрэгчтэй эсэх",
-                    "Галаас урьдчилан сэргийлэх санамжуудтай эсэх",
-                    "Анхан шатны багаж хэрэгсэл бүрэн бүтэн эсэх",
-                    "Галын аюулгүй байдлыг хангах дотоод журамтай эсэх",
-                    "Ажилтнууд галын хорыг ашиглаж сурсан эсэх",
-                ],
-            },
-        ],
-    },
-    {
-        "name": "ЦАХИЛГААНЫ АЮУЛГҮЙ БАЙДАЛ",
-        "groups": [
-            {
-                "name": "Хэрэглэгчийн үүрэг хариуцлага",
-                "questions": [
-                    "Мэргэшсэн үнэмлэхтэй цахилгаан техникийн мэргэжлийн ажилтантай эсэх",
-                    "Цахилгааны урсгал засварыг цаг тухайд нь хийдэг эсэх",
-                    "Цахилгаан тоног төхөөрөмжийн ашиглалтын үед осол гэмтэл гарсан эсэх",
-                    "Цахилгаан тоног төхөөрөмж хамгаалах хэрэгслээр бүрэн хангагдсан эсэх",
-                    "Цахилгаан техникийн ажилтны ашиглалтын зааврыг боловсруулсан эсэх",
-                ],
-            },
-            {
-                "name": "Хувиарлах байгууламж",
-                "questions": [
-                    "Хувиарлах байгууламж нь байнгын газардуулгаар тоноглогдсон эсэх",
-                    "Хувиарлах самбарын кабель утас нь тэмдэглэгээтэй эсэх",
-                    "Хувиарлах самбарын кабель утас эмх цэгцтэй монтажлагдсан эсэх",
-                    "Холбогдох мэргэжилтэнгүүд аваарын үед ажиллах схем, заавруудаар хангагдсан эсэх",
-                    "Хувиарлах байгууламжийн засвар үйлчилгээг тогтоосон хугацаанд хийсэн эсэх",
-                ],
-            },
-            {
-                "name": "Трансформаторын техник ашиглалт",
-                "questions": [
-                    "Ректоруудад дэд станцын дугаар, диспетчерийн нэр бичигдсэн эсэх",
-                    "Хөргөлтийн т/т-н хөдөлгүүрийн тэжээлийн эх үүсвэр автоматаар залгагддаг эсэх",
-                    "Ачаалалтай трансформаторын хүчдэл тохируулагч нь байнгын ажиллагаатай эсэх",
-                    "Ректорын их урсгал засварыг тогтоосон хугацаанд хийсэн эсэх",
-                    "Ашиглалтад байгаа трансформаторын эд анги, туршилтыг нормын дагуу хийж гүйцэтгэсэн эсэх",
-                ],
-            },
-            {
-                "name": "Цахилгаан дамжуулах агаарын шугам",
-                "questions": [
-                    "Агаарын шугам нь бусад агаарын шугамтай огтлолцсон эсэх",
-                    "Агаарын шугаман утасны холбоос шаардлага хангасан эсэх",
-                    "Агаарын шугаман тулгууруудад санамж плакатууд бүрэн тавигдсан эсэх",
-                    "Тулгуур болон металл хийцийг зэврэлтээс хамгаалах түрхлэг хийсэн эсэх",
-                    "Агаарын шугаманд ээлжит болон ээлжит бус үзлэг хийгддэг эсэх",
-                ],
-            },
-            {
-                "name": "Реле, газардуулах диспетчер",
-                "questions": [
-                    "Реле хамгаалалт, автоматик ба хоёрдогч хэлхээнд хэмжилт, туршилт тохируулга хийгдсэн эсэх",
-                    "Газардуулгын утсыг холбохдоо гагнуураар буюу боолтоор холболтыг хийсэн эсэх",
-                    "Зэврэлтээс хамгаалсан эсэргүйцлийн хэмжилтийг тогтоосон хугацаанд хийсэн эсэх",
-                    "Диспетчерийн шуурхай удирдлага, албатай эсэх",
-                    "Цахилгаан хангамжийн системтэй, хэмжилттэй горимыг хангаж ажилладаг эсэх",
-                ],
-            },
-        ],
-    },
-    {
-        "name": "ХӨДӨЛМӨРИЙН АЮУЛГҮЙ БАЙДАЛ",
-        "groups": [
-            {
-                "name": "Барилга угсралтын талбай",
-                "questions": [
-                    "Талбайн зохион байгуулалтын зурагтай эсэх",
-                    "Барилга угсралтын талбайн аюулгүй ажиллагааны зохицуулагч ажлуулдаг эсэх",
-                    "Хамгаалах тор, хашлага анхааруулах зурвас татах журам түүний хэрэгжилтийг хангуулдаг эсэх",
-                    "Ажилтнууд, тээврийн хэрэгсэл, өргөх зөөх механизмийн талбайн хязгаарлалт тэмдэглэгээтэй эсэх",
-                    "Гарах өргөх ачааны зөвшөөрөгдөх хэмжээг мөрддөг эсэх",
-                ],
-            },
-            {
-                "name": "Машин механизм, тоног төхөөрөмж",
-                "questions": [
-                    "Машин механизм, тоног төхөөрөмжийн зай аюулгүй ажиллагааны шаардлага хангасан эсэх",
-                    "Машин механизм, тоног төхөөрөмж ажиллуулах үед мөрдөх аюулгүй ажилгааны заавартай эсэх",
-                    "Тоног төхөөрөмж удирдлага нь бүрэн ажилладаг эсэх",
-                    "Ажлын байранд тоног төхөөрөмжийн аюулгүй бүсийг тогтоосон эсэх",
-                    "Т/т-н засвар, үйлчилгээ тохируулгыг техникийн баримт бичигт заасан хугацаанд тогтмол хийдэг эсэх",
-                ],
-            },
-            {
-                "name": "Өргөх, зөөх, тээвэрлэх механизм",
-                "questions": [
-                    "Өргөх зөөх хэрэгслийн техникийн аюулгүй байдлыг хариуцсан ажилтантай эсэх",
-                    "Мэргэжлийн оосорлогч дохиотой эсэх",
-                    "Даацын баталгааг мэргэжлийн байгууллагаар хийлгэсэн эсэх",
-                    "Тоормазны механизм бүрэн ажилладаг эсэх",
-                    "Өргөх дэгээ түгжээний аваарын таслууртай эсэх",
-                ],
-            },
-            {
-                "name": "Газрын дор хязгаарлагдмал орчин",
-                "questions": [
-                    "Холбоо барих хэрэгсэлтэй эсэх",
-                    "Ажилд оруулах зөвшөөрөл олгодог эсэх",
-                    "Агааржуулалтын системтэй эсэх",
-                    "Аваарын үед ажиллах журамтай эсэх",
-                    "Ажлыг хянах хянагчтай эсэх",
-                ],
-            },
-            {
-                "name": "Химийн бодис",
-                "questions": [
-                    "Химийн бодисыг хадгалах, ашиглах журам, санамж шошигтой эсэх",
-                    "Химийн бодисыг стандартын нөхцөлд хадгалдаг эсэх",
-                    "Химийн бодис ашиглалтын болон аюулгүй ажиллагааны заавартай эсэх",
-                    "Химийн бодисыг мэдээллэх хуудас ашигладаг, тэмдэглэл хөтөлдөг эсэх",
-                    "Химийн тусгай лабортортой эсэх",
-                ],
-            },
-        ],
-    },
-    {
-        "name": "ТЭЭВРИЙН ХЭРЭГСЭЛ ТЕХНИКИЙН АЮУЛГҮЙ БАЙДАЛ",
-        "groups": [
-            {
-                "name": "Тоормосны систем",
-                "questions": [
-                    "Тоормосны зам, дугуй бүрийн тоормосны жигд барилт, тэдгээрийн зөрүүг шалгадаг эсэх",
-                    "Хий ба шингэн удирдлагатай тоормосны системийн битүүмжийн байдалд үзлэг шалгалт хийдэг эсэх",
-                    "Дөрөөний сул ба бүрэн явалтыг шалгадаг эсэх",
-                    "Зогсоолын тоормосны идэвхжилтийг шалгадаг эсэх",
-                    "Хөдөлгүүрийн ажилласан хийн найрлагыг шалгадаг эсэх",
-                ],
-            },
-            {
-                "name": "Жолооны механизм",
-                "questions": [
-                    "Жолооны хүрдний сул ба бүрэн явалтыг болон эргүүлэх хүчийг хэмжиж шалгадаг эсэх",
-                    "Жолооны араат дамжуулга дахь шингэнт хүчлүүрийн битүүмжлэл шалгадаг эсэх",
-                    "Жолооны удирдлагын татуурга, нугасан холбоос, нударганы сул явалтыг хэмжиж шалгадаг эсэх",
-                    "Урд тэнхлэгийн өндрийг хэмжиж, шалгадаг эсэх",
-                    "Дуу намсгагч болон дуу чимээний түвшинг үзэж шалгадаг эсэх",
-                ],
-            },
-            {
-                "name": "Гэрэлтүүлэгч цахилгааны систем",
-                "questions": [
-                    "Их гэрлийн тусгалын тохиргоо, гэрлийн хүчийг хэмжиж шалгадаг эсэх",
-                    "Хурд хэмжүүр, дуут дохионы ажиллагааг шалгадаг эсэх",
-                    "Гэрлэн дохио, гэрэл ойлгуурын иж бүрдэл болон гэрэл шилжүүгийн ажиллагааг шалгадаг",
-                    "Цахилгаан дамжуулах утасны бүрэн бүтэн байдалд үзлэг хийдэг эсэх",
-                    "Авто машины оврын гэрлүүд цацруулагч гэрлийн хүрээний бүрэн байдалд үзлэг хийдэг эсэх",
-                ],
-            },
-            {
-                "name": "Хөдөлгүүрийн хүч дамжуулах анги",
-                "questions": [
-                    "Дискэн холбоо салахгүй буюу хий эргэдэг эсэхэд үзлэг хийдэг эсэх",
-                    "Гордон галын дамжуулгын байдалд үзлэг хийдэг эсэх",
-                    "Хөдөлгүүр хурдны хайрцаг ерөнхий дамжуулгаас тос, хөргөх системээс шингэн гоожсон эсэх",
-                    "Сэнсний оосорын элэгдэл, тохиргоо гэмтэлтэй эсэх",
-                    "Хурдны хайрцгийн дамжуулгын байдалд үзлэг хийдэг эсэх",
-                ],
-            },
-            {
-                "name": "Ерөнхий байдал",
-                "questions": [
-                    "Шил толины бүрэн бүтэн байдалд үзлэг хийдэг эсэх",
-                    "Дулаан, агааржуулалт, салхижуулалтын систем ажиллагаатай эсэх",
-                    "Кузовын бэхэлгээ, аюулгүйн тулгуурыг үзэн шалгадаг эсэх",
-                    "Шил алчуур, шил угаагуур болон үлээгүүрийн ажиллагааг шалгадаг эсэх",
-                    "Салхины шилний үзэгдэх орчныг хязгаарлах байдалд үзлэг хийдэг эсэх",
-                ],
-            },
-        ],
-    },
-    {
-        "name": "АГУУЛАХЫН АЮУЛГҮЙ БАЙДАЛ",
-        "groups": [
-            {
-                "name": "Агуулах зоорийн доторхи орчин",
-                "questions": [
-                    "Агуулахын хаалга, цонх нь шувуу, ургамлын хортон шавьж нэвтрэхгүй байхаар битүүмжлэгдсэн эсэх",
-                    "Агуулахын чийглэг, температур шаардлага хангасан эсэх",
-                    "Агааржуулалтын систем хэвийн ажилладаг эсэх",
-                    "Шал, ханыг плитадсан эсвэл цементэлсэн эсэх",
-                    "Агуулахын дотор, гаднах өнгө үзэмж сайтай эсэх",
-                ],
-            },
-            {
-                "name": "Агуулах зоорийн гадна орчин",
-                "questions": [
-                    "Гадна талдаа гэрэлтүүлэгтэй, хашаагаар хамгаалагдсан эсэх",
-                    "Гадна талбайн хог, ургамалыг устгасан эсэх",
-                    "Аюулгүйн тэмдэг, галын гарц заасан тэмдэглэгээтэй эсэх",
-                    "Хог хаягдалын цэгтэй, бүх хог хаягдалыг цэвэрлэдэг эсэх",
-                    "Гал түймрийн хэрэгсэл байрлуулсан эсэх",
-                ],
-            },
-            {
-                "name": "Бүтээгдэхүүнд хийх үзлэг",
-                "questions": [
-                    "Бүтээгдэхүүнд элдэв гадны хольц, шавьж байхгүй эсэх",
-                    "Бүтээгдэхүүнийг зориулалтын тээврийн хэрэгслэлээр тээвэрлэдэг эсэх",
-                    "Хадгалж буй бүтээгдхүүнийг хаягжуулсан эсэх",
-                    "Сав баглаа боодол стандартад нийцсэн эсэх",
-                    "Савласан бүтээгдэхүүн шошгололт стандартын шаардлага хангасан эсэх",
-                ],
-            },
-            {
-                "name": "Бүтээгдэхүүний чанар",
-                "questions": [
-                    "Хадгалж борлуулж буй бүтээгдэхүүн гарал үүслийн гэрчилгээтэй эсэх",
-                    "Хүний эрүүл мэндэд хор нөлөөгүй талаар эрх бүхий байгууллагын дүгнэлттэй эсэх",
-                    "Хүнсний түүхий эд, бүтээгдэхүүний ул мөрийг мөрдөн тогтоох бүртгэлийг хөтөлсөн эсэх",
-                    "Агуулах зооринд халдваргүйжүүлэлт хийх гэрээ байгуулсан эсэх",
-                    "Халдваргүйтэл ариутгал хийлгэсэн тухай акттай эсэх",
-                ],
-            },
-            {
-                "name": "Дотоод хяналт",
-                "questions": [
-                    "Температур, чийг хэмжилтийг өдөр бүр хийж тэмдэглэл хөтөлдөг эсэх",
-                    "Дотоод хяналт шалгалтын нэгж ажиллагаатай эсэх",
-                    "Утаа мэдрэгч, галын дохиоллын системтэй эсэх",
-                    "Эрүүл ахуйн шаардлага хангасан гар угаах болон угаалгын өрөөтэй эсэх",
-                    "Галын хор, анхны тусламжийн эмийн сан, саармагжуулалтын бодистой эсэх",
-                ],
-            },
-        ],
-    },
-    {
-        "name": "ТОНОГ ТӨХӨӨРӨМЖИЙН АЮУЛГҮЙ БАЙДАЛ",
-        "groups": [
-            {
-                "name": "Гэмтэх, зүсэгдэх, хатгагдах",
-                "questions": [
-                    "Үс гэзэг, хувцас хэрэгсэл хөдөлгөөнтэй эргэлдэх төхөөрөмжид орооцолдох магадлалтай эсэх",
-                    "Төхөөрөмжийг удаашруулан зогсоох, хөдөлгөөнийг хязгаарлах нөхцлөөр хомсдолтой эсэх",
-                    "Төхөөрөмжийг шалгах, засварлах, цэвэрлэгээ хийх явцад хөдөлгөөнт эд ангитай шүргэлцэх эсэх",
-                    "Төхөөрөмж, материал болон хөдөлгөөнгүй эд зүйлийн дунд гацах магадлалтай эсэх",
-                    "Хурц иртэй болон шидэгдсэн биеттэй шүргэлцэх магадлалтай эсэх",
-                ],
-            },
-            {
-                "name": "Тайрагдах, түлэгдэх, цохигдох",
-                "questions": [
-                    "Төхөөрөмжийн гадаргуу, эсхүл уг төхөөрөмжид ашиглаж буй материалтай шүргэлдсэнээс түлэгдэх эсэх",
-                    "Төхөөрөмжийн эд ангиудын хооронд, эсхүл бүтэц, хийцийн хооронд хүний эд эрхтэн орж тайрагдах эсэх",
-                    "Төхөөрөмж түүний эд анги бэлдэц бүтэц задрах, сугарах магадлалтай эсэх",
-                    "Төхөөрөмжид ашиглаж буй материалын гэнэтийн, хяналтаас гадуур хөдөлгөөнтэй эсэх",
-                    "Төхөөрөмжийн гэмтэл, буруу ажиллуулснаас шалтгаалан өндөр даралтад шингэнд өртөх аюул бий эсэх",
-                ],
-            },
-            {
-                "name": "Хальтрах, бүдрэх, амьсгал боогдох",
-                "questions": [
-                    "Төхөөрөмжийн ойролцоо саад учруулахуйц зүйл олон эсэх",
-                    "Ажлын гадаргуу тэгш бус хальтаргаатай, орчны цэвэр байдал хангагдаагүй эсэх",
-                    "Тохирох ажлын тавцан, шат, хайс, хашилт хальтрахаас хамгаалсан гадаргуу хүрэлцээтэй эсэх",
-                    "Бөглөөгүй нүх, цоорхой завсар, явах хэсэг хазгай эсэх",
-                    "Агаар бохирдох, хүчилтөрөгч дутах шалтгаанаар амьсгал боогдох магадлалтай эсэх",
-                ],
-            },
-            {
-                "name": "Гар ажиллагаа",
-                "questions": [
-                    "Зөөж буй обьектын байдал, хэмжээ, хэлбэр, хийц, ирмэг гулсамтгай, барьцгүй тогтворгүй эсэх",
-                    "Ажлын байрны зохион байгуулалтын нөхцөл муу эсэх",
-                    "Гар ажиллагааны зарцуулах хүч, үргэлжлэх хугацаа, давтамж, хоромхон зуур ядраах сульдаах эсэх",
-                    "Гар ажиллагааг гүйцэтгэхэд нас, ур чадвар, туршлага шаарддаг эсэх",
-                    "Обьектыг зөөх зай урт, хугацаа шаарддаг, механик туслалцаа дутмаг эсэх",
-                ],
-            },
-            {
-                "name": "Цахилгаан холболт, дэлбэрэлт",
-                "questions": [
-                    "Төхөөрөмж цахилгаан дамжуулагчтай шүргэлцсэн эсхүл хэт ойр байрласан эсэх",
-                    "Цахилгаан хэрэгсэл усны ойр байрласан, тусгаарлах арга ажиллагаа хяналтгүй эсэх",
-                    "Материалын улмаас үүсэх хий, ууршилт, тоос бусад бодисын дэлбэрэлтэд өртөх аюултай эсэх",
-                    "Хэт нам ба өндөр температурт орчинд ажилласнаас хүний эрүүл мэндэд сөрөг нөлөөтэй эсэх",
-                    "Цахилгааны хэлхээ хэт ачаалалтай, хэлхээний залгуур гэмтэлтэй эсэх",
-                ],
-            },
-        ],
-    },
-]
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(message)s",
+)
+logger = logging.getLogger(__name__)
 
 
-async def seed_questions(session: AsyncSession) -> dict:
-    """Seed all question types, groups, and questions.
+# =============================================================================
+# Data Classes for Parsed Question Data
+# =============================================================================
+
+
+@dataclass
+class ParsedQuestion:
+    """A single question with parsed option and score.
+
+    Attributes:
+        text: Question text in Mongolian Cyrillic.
+        option_text: "Үгүй" or "Тийм".
+        score: 0 or 1.
+    """
+
+    text: str
+    option_text: str  # "Үгүй" or "Тийм"
+    score: int  # 0 or 1
+
+
+@dataclass
+class ParsedGroup:
+    """A group of questions with a name.
+
+    Attributes:
+        name: Group name in Mongolian Cyrillic.
+        questions: List of questions in this group.
+    """
+
+    name: str
+    questions: list[ParsedQuestion] = field(default_factory=list)
+
+
+@dataclass
+class ParsedType:
+    """A questionnaire type containing multiple groups.
+
+    Attributes:
+        name: Type name in Mongolian Cyrillic.
+        groups: List of groups in this type.
+    """
+
+    name: str
+    groups: list[ParsedGroup] = field(default_factory=list)
+
+
+@dataclass
+class ParsedQuestionData:
+    """Complete parsed data from one markdown file.
+
+    Attributes:
+        types: List of questionnaire types found in the file.
+    """
+
+    types: list[ParsedType] = field(default_factory=list)
+
+
+@dataclass
+class SeedStats:
+    """Summary statistics from seed operation.
+
+    Attributes:
+        types_created: Number of types created or updated.
+        groups_created: Number of groups created or updated.
+        questions_created: Number of questions created or updated.
+        options_created: Number of options created or updated.
+        errors: Number of errors encountered during seeding.
+    """
+
+    types_created: int = 0
+    groups_created: int = 0
+    questions_created: int = 0
+    options_created: int = 0
+    errors: int = 0
+
+
+# =============================================================================
+# Inverse Scoring Logic
+# =============================================================================
+
+
+def calculate_scores(option_text: str, score: int) -> tuple[int, int]:
+    """Calculate NO and YES scores based on parsed option.
+
+    Implements inverse scoring logic: if one option has score 1,
+    the other gets score 0. Both can have score 0.
+
+    Args:
+        option_text: "Үгүй" or "Тийм".
+        score: Parsed score (0 or 1).
 
     Returns:
-        Dict with counts of created entities.
-    """
-    stats = {"types": 0, "groups": 0, "questions": 0, "options": 0}
+        Tuple of (no_score, yes_score).
 
-    for type_order, type_data in enumerate(SEED_DATA, start=1):
-        # Create QuestionnaireType
-        qtype = QuestionnaireType(
+    Examples:
+        >>> calculate_scores("Үгүй", 1)
+        (1, 0)
+        >>> calculate_scores("Тийм", 1)
+        (0, 1)
+        >>> calculate_scores("Үгүй", 0)
+        (0, 0)
+    """
+    if option_text == "Үгүй" and score == 1:
+        return (1, 0)
+    elif option_text == "Тийм" and score == 1:
+        return (0, 1)
+    else:
+        # Both can be 0
+        return (0, 0)
+
+
+# =============================================================================
+# Parsing Functions
+# =============================================================================
+
+
+def parse_question_line(
+    line: str, file_path: str, line_number: int
+) -> tuple[str, str, int] | None:
+    """Parse a single question line to extract text, option, and score.
+
+    Question line format (8+ space indent or 2+ tabs):
+        Question text here[TAB]Үгүй/Тийм[TAB]0/1
+
+    Args:
+        line: The line to parse.
+        file_path: Path to file for error messages.
+        line_number: Line number for error messages.
+
+    Returns:
+        Tuple of (question_text, option_text, score) or None if parsing fails.
+    """
+    try:
+        # Strip leading whitespace (spaces/tabs) first
+        content = line.lstrip()
+
+        # Split by tab
+        parts = content.split('\t')
+
+        # Clean up each part (strip whitespace)
+        parts = [p.strip() for p in parts if p.strip()]
+
+        if len(parts) < 2:
+            # Not enough parts even for text + option
+            logger.warning(
+                f"{file_path}:{line_number}: Warning: Question line missing parts, "
+                f"skipping: '{content[:80]}'"
+            )
+            return None
+
+        if len(parts) == 2:
+            # Missing score, use default 0
+            text, option_text = parts[0], parts[1]
+            score_str = None
+        else:
+            # Has all three parts
+            text, option_text, score_str = parts[0], parts[1], parts[2]
+
+        # Validate option text first (before trying to parse score)
+        if option_text not in ("Үгүй", "Тийм"):
+            logger.warning(
+                f"{file_path}:{line_number}: Warning: Invalid option '{option_text}', "
+                f"skipping question: '{text[:50]}'"
+            )
+            return None
+
+        # Validate and convert score if present
+        if score_str is None:
+            score = 0
+        else:
+            try:
+                score = int(score_str.strip())
+                if score not in (0, 1):
+                    logger.warning(
+                        f"{file_path}:{line_number}: Warning: Invalid score '{score_str}', "
+                        f"using default 0: '{text[:50]}'"
+                    )
+                    score = 0
+            except ValueError:
+                logger.warning(
+                    f"{file_path}:{line_number}: Warning: Score not an integer '{score_str}', "
+                    f"using default 0: '{text[:50]}'"
+                )
+                score = 0
+
+        return (text, option_text, score)
+
+    except Exception as e:
+        logger.warning(
+            f"{file_path}:{line_number}: Warning: Failed to parse question line: {e}"
+        )
+        return None
+
+
+def parse_markdown_file(file_path: Path) -> ParsedQuestionData:
+    """Parse a single markdown file and extract question data.
+
+    File format:
+        Filename: Type - TYPE NAME.md (extract type name from filename)
+           Group Name (3-space indent, no tabs)
+           \t\tQuestion text\t\tOption\t\tScore (3 spaces + 2 tabs)
+
+    Args:
+        file_path: Path to markdown file (must exist, readable, UTF-8 encoded).
+
+    Returns:
+        ParsedQuestionData with all types, groups, and questions found in file.
+
+    Raises:
+        FileNotFoundError: If file_path does not exist.
+        UnicodeDecodeError: If file is not valid UTF-8.
+        ValueError: If file format is invalid (no parseable content).
+    """
+    if not file_path.exists():
+        raise FileNotFoundError(f"File not found: {file_path}")
+
+    # Extract type name from filename
+    # Format: "Type - TYPE NAME.md" or "Type - TYPE NAME something.md"
+    filename = file_path.stem  # Get filename without extension
+    if filename.startswith("Type - "):
+        type_name = filename[7:].strip()  # Remove "Type - " prefix
+    else:
+        type_name = filename
+        logger.warning(
+            f"{file_path}: Warning: Filename doesn't follow 'Type - NAME.md' format, "
+            f"using '{type_name}' as type name"
+        )
+
+    # Create the type for this file
+    current_type = ParsedType(name=type_name)
+    result = ParsedQuestionData(types=[current_type])
+    current_group: ParsedGroup | None = None
+
+    try:
+        with open(file_path, "r", encoding="utf-8") as f:
+            for line_number, line in enumerate(f, start=1):
+                # Skip empty lines and comments
+                stripped = line.strip()
+                if not stripped or stripped.startswith("#"):
+                    continue
+
+                # Count leading spaces and tabs character by character
+                leading_spaces = 0
+                leading_tabs = 0
+                for char in line:
+                    if char == ' ':
+                        leading_spaces += 1
+                    elif char == '\t':
+                        leading_tabs += 1
+                    else:
+                        break
+
+                # Check if line contains tabs (used as separators between parts)
+                has_tabs = '\t' in line
+
+                # Group header (0 leading spaces, NO leading tabs)
+                # Groups have no indentation at all, but may have trailing tabs.
+                # Key difference from question lines: group headers DON'T end with Үгүй/Тийм option.
+                if leading_spaces == 0 and leading_tabs == 0:
+                    # Check if this looks like a question line (ends with Үгүй or Тийм option)
+                    # Split by tabs and check the last non-empty part
+                    parts = [p.strip() for p in line.split('\t') if p.strip()]
+                    last_part = parts[-1] if parts else ""
+                    is_question_line = last_part in ("Үгүй", "Тийм")
+
+                    if not is_question_line:
+                        # This is a group header (with or without trailing tabs)
+                        # Remove trailing tabs, colon, and whitespace
+                        group_name = stripped.rstrip(":\t").strip()
+                        current_group = ParsedGroup(name=group_name)
+                        current_type.groups.append(current_group)
+                    else:
+                        # This is a question line with no indentation
+                        # Treat it as a question if we have a group
+                        if current_group is not None:
+                            parsed = parse_question_line(line, str(file_path), line_number)
+                            if parsed:
+                                text, option_text, score = parsed
+                                text = text.strip()
+                                question = ParsedQuestion(
+                                    text=text, option_text=option_text, score=score
+                                )
+                                current_group.questions.append(question)
+                        else:
+                            logger.warning(
+                                f"{file_path}:{line_number}: Warning: Question without "
+                                f"group, skipping: '{stripped[:50]}'"
+                            )
+
+                # Question line (5-7 leading spaces OR leading tabs AND has tabs for separators)
+                # Format: "       Question text\t\tOption\t\tScore" (5-7 spaces + tabs)
+                # OR: "\tQuestion text\t\tOption\t\tScore" (tab + tabs)
+                elif (leading_spaces >= 5 or leading_tabs > 0) and has_tabs:
+                    if current_group is None:
+                        logger.warning(
+                            f"{file_path}:{line_number}: Warning: Question without "
+                            f"group, skipping: '{stripped[:50]}'"
+                        )
+                        continue
+
+                    parsed = parse_question_line(line, str(file_path), line_number)
+                    if parsed:
+                        text, option_text, score = parsed
+                        # Strip leading whitespace from question text
+                        text = text.strip()
+                        question = ParsedQuestion(
+                            text=text, option_text=option_text, score=score
+                        )
+                        current_group.questions.append(question)
+
+                # Skip other lines
+                else:
+                    logger.debug(
+                        f"{file_path}:{line_number}: Skipping line (spaces={leading_spaces}, "
+                        f"tabs={leading_tabs}): '{stripped[:50]}'"
+                    )
+
+    except UnicodeDecodeError as e:
+        raise UnicodeDecodeError(
+            e.encoding,
+            e.object,
+            e.start,
+            e.end,
+            f"File is not valid UTF-8 encoding: {file_path}",
+        )
+
+    # Validate we got something
+    total_questions = sum(len(g.questions) for g in current_type.groups)
+    if total_questions == 0:
+        raise ValueError(f"No parseable content in {file_path}")
+
+    return result
+
+
+# =============================================================================
+# Database Helper Functions
+# =============================================================================
+
+
+async def create_questionnaire_type(
+    session: AsyncSession, name: str
+) -> QuestionnaireType:
+    """Create or update a questionnaire type.
+
+    Args:
+        session: Async SQLAlchemy session.
+        name: Type name in Mongolian Cyrillic.
+
+    Returns:
+        Created or updated QuestionnaireType instance.
+    """
+    # Check if exists
+    result = await session.execute(
+        select(QuestionnaireType).where(QuestionnaireType.name == name)
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        # Update timestamp
+        existing.updated_at = existing.updated_at  # Trigger onupdate
+        return existing
+
+    # Create new
+    qtype = QuestionnaireType(
+        id=uuid4(),
+        name=name,
+        scoring_method=ScoringMethod.SUM,
+        threshold_high=80,
+        threshold_medium=50,
+        weight=Decimal("1.0"),
+        is_active=True,
+    )
+    session.add(qtype)
+    await session.flush()
+    return qtype
+
+
+async def create_question_group(
+    session: AsyncSession, type_id: uuid4, name: str, order: int
+) -> QuestionGroup:
+    """Create or update a question group.
+
+    Args:
+        session: Async SQLAlchemy session.
+        type_id: Parent questionnaire type ID.
+        name: Group name in Mongolian Cyrillic.
+        order: Display order within type (1, 2, 3...).
+
+    Returns:
+        Created or updated QuestionGroup instance.
+    """
+    # Check if exists by (type_id, name)
+    result = await session.execute(
+        select(QuestionGroup).where(
+            QuestionGroup.type_id == type_id, QuestionGroup.name == name
+        )
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        # Update display_order if changed
+        if existing.display_order != order:
+            existing.display_order = order
+        return existing
+
+    # Create new
+    group = QuestionGroup(
+        id=uuid4(),
+        type_id=type_id,
+        name=name,
+        display_order=order,
+        weight=Decimal("1.0"),
+        is_active=True,
+    )
+    session.add(group)
+    await session.flush()
+    return group
+
+
+async def create_question(
+    session: AsyncSession,
+    group_id: uuid4,
+    text: str,
+    order: int,
+    no_score: int,
+    yes_score: int,
+) -> Question:
+    """Create or update a question with two options (NO and YES).
+
+    Args:
+        session: Async SQLAlchemy session.
+        group_id: Parent question group ID.
+        text: Question text in Mongolian Cyrillic.
+        order: Display order within group (1, 2, 3...).
+        no_score: Score for Үгүй (NO) option (0 or 1).
+        yes_score: Score for Тийм (YES) option (0 or 1).
+
+    Returns:
+        Created or updated Question instance.
+    """
+    # Validate scores
+    if no_score not in (0, 1) or yes_score not in (0, 1):
+        raise ValueError(
+            f"Invalid scores: no_score={no_score}, yes_score={yes_score} "
+            f"(must be 0 or 1)"
+        )
+
+    # Check if exists by (group_id, text)
+    result = await session.execute(
+        select(Question).where(Question.group_id == group_id, Question.text == text)
+    )
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        # Update display_order if changed
+        if existing.display_order != order:
+            existing.display_order = order
+        question_id = existing.id
+    else:
+        # Create new question
+        question = Question(
             id=uuid4(),
-            name=type_data["name"],
-            scoring_method=ScoringMethod.SUM,
-            threshold_high=80,
-            threshold_medium=50,
+            group_id=group_id,
+            text=text,
+            display_order=order,
             weight=Decimal("1.0"),
+            is_critical=False,
             is_active=True,
         )
-        session.add(qtype)
+        session.add(question)
         await session.flush()
-        stats["types"] += 1
-        print(f"Created Type: {qtype.name}")
+        question_id = question.id
 
-        for group_order, group_data in enumerate(type_data["groups"], start=1):
-            # Create QuestionGroup
-            group = QuestionGroup(
-                id=uuid4(),
-                type_id=qtype.id,
-                name=group_data["name"],
-                display_order=group_order,
-                weight=Decimal("1.0"),
-                is_active=True,
+    # Delete existing options (will recreate)
+    await session.execute(
+        select(QuestionOption).where(QuestionOption.question_id == question_id)
+    )
+    # Note: We're not actually deleting here, just querying.
+    # In production, we'd do a proper delete or update.
+
+    # Check if options already exist and update/create
+    for option_type, score in [
+        (OptionType.NO, no_score),
+        (OptionType.YES, yes_score),
+    ]:
+        result = await session.execute(
+            select(QuestionOption).where(
+                QuestionOption.question_id == question_id,
+                QuestionOption.option_type == option_type,
             )
-            session.add(group)
-            await session.flush()
-            stats["groups"] += 1
-            print(f"  Created Group: {group.name}")
+        )
+        existing_option = result.scalar_one_or_none()
 
-            for q_order, question_text in enumerate(group_data["questions"], start=1):
-                # Create Question
-                question = Question(
-                    id=uuid4(),
-                    group_id=group.id,
-                    text=question_text,
-                    display_order=q_order,
-                    weight=Decimal("1.0"),
-                    is_critical=False,
-                    is_active=True,
-                )
-                session.add(question)
-                await session.flush()
-                stats["questions"] += 1
+        if existing_option:
+            # Update score if changed
+            if existing_option.score != score:
+                existing_option.score = score
+        else:
+            # Create new option
+            # Note: max_images=1 due to database constraint ck_max_images_range
+            new_option = QuestionOption(
+                id=uuid4(),
+                question_id=question_id,
+                option_type=option_type,
+                score=score,
+                require_comment=False,
+                require_image=False,
+                comment_min_len=0,
+                max_images=1,  # Minimum allowed by constraint
+                image_max_mb=1,
+            )
+            session.add(new_option)
 
-                # Create YES option (score=1, no requirements)
-                yes_option = QuestionOption(
-                    id=uuid4(),
-                    question_id=question.id,
-                    option_type=OptionType.YES,
-                    score=1,
-                    require_comment=False,
-                    require_image=False,
-                    comment_min_len=0,
-                    max_images=1,  # Minimum allowed by constraint
-                    image_max_mb=1,  # Minimum allowed by constraint
-                )
-                session.add(yes_option)
-                stats["options"] += 1
+    await session.flush()
 
-                # Create NO option (score=0, requires comment)
-                no_option = QuestionOption(
-                    id=uuid4(),
-                    question_id=question.id,
-                    option_type=OptionType.NO,
-                    score=0,
-                    require_comment=True,
-                    require_image=False,
-                    comment_min_len=10,
-                    max_images=3,
-                    image_max_mb=5,
-                )
-                session.add(no_option)
-                stats["options"] += 1
+    # Return the question (existing or new)
+    result = await session.execute(select(Question).where(Question.id == question_id))
+    return result.scalar_one()
 
-            print(f"    Created {len(group_data['questions'])} questions")
 
+# =============================================================================
+# Main Seed Function
+# =============================================================================
+
+
+async def seed_questions(session: AsyncSession) -> SeedStats:
+    """Main entry point: Parse all markdown files and seed database.
+
+    This is the primary function called by `python -m src.seeds.questions_seed`.
+
+    Args:
+        session: Async SQLAlchemy session.
+
+    Returns:
+        SeedStats with counts of created/updated entities and errors.
+    """
+    stats = SeedStats()
+
+    # Find questions folder
+    questions_dir = Path("/Users/user/Sources/projects/risk-assessment/questions")
+    if not questions_dir.exists():
+        raise FileNotFoundError(
+            "questions/ folder does not exist. "
+            "Please create it and add markdown files with question data."
+        )
+
+    # Find all markdown files (excluding test files)
+    md_files = [f for f in questions_dir.glob("*.md") if f.name != "test_valid.md"]
+    if not md_files:
+        raise FileNotFoundError(
+            f"No markdown files found in {questions_dir}/. "
+            "Please add .md files with question data."
+        )
+
+    logger.info(f"Found {len(md_files)} markdown file(s) in {questions_dir}/")
+
+    # Process each file
+    for md_file in md_files:
+        try:
+            logger.info(f"Processing: {md_file.name}")
+
+            # Parse file
+            parsed_data = parse_markdown_file(md_file)
+
+            # Create types, groups, questions
+            for parsed_type in parsed_data.types:
+                qtype = await create_questionnaire_type(session, parsed_type.name)
+                stats.types_created += 1
+                logger.info(f"  Type: {qtype.name}")
+
+                for group_order, parsed_group in enumerate(parsed_type.groups, start=1):
+                    group = await create_question_group(
+                        session, qtype.id, parsed_group.name, group_order
+                    )
+                    stats.groups_created += 1
+                    logger.info(f"    Group: {group.name}")
+
+                    for q_order, parsed_question in enumerate(
+                        parsed_group.questions, start=1
+                    ):
+                        # Calculate inverse scores
+                        no_score, yes_score = calculate_scores(
+                            parsed_question.option_text, parsed_question.score
+                        )
+
+                        # Create question with options
+                        await create_question(
+                            session,
+                            group.id,
+                            parsed_question.text,
+                            q_order,
+                            no_score,
+                            yes_score,
+                        )
+                        stats.questions_created += 1
+                        stats.options_created += 2
+
+                    logger.info(f"      Created {len(parsed_group.questions)} questions")
+
+        except Exception as e:
+            logger.error(f"Error processing {md_file.name}: {e}")
+            stats.errors += 1
+            continue
+
+    # Commit all changes
     await session.commit()
+
     return stats
 
 
+# =============================================================================
+# CLI Entry Point
+# =============================================================================
+
+
 async def main():
-    """Main entry point for seeding."""
+    """Main entry point for seeding.
+
+    Run with: python -m src.seeds.questions_seed
+    """
     print("Starting question seed...")
     print("=" * 50)
 
-    async with async_session_factory() as session:
-        stats = await seed_questions(session)
+    try:
+        async with async_session_factory() as session:
+            stats = await seed_questions(session)
 
-    print("=" * 50)
-    print("Seed completed!")
-    print(f"  Types: {stats['types']}")
-    print(f"  Groups: {stats['groups']}")
-    print(f"  Questions: {stats['questions']}")
-    print(f"  Options: {stats['options']}")
+        print("=" * 50)
+        print("Seed completed!")
+        print(f"  Types: {stats.types_created}")
+        print(f"  Groups: {stats.groups_created}")
+        print(f"  Questions: {stats.questions_created}")
+        print(f"  Options: {stats.options_created}")
+        if stats.errors > 0:
+            print(f"  Errors: {stats.errors}")
+
+    except FileNotFoundError as e:
+        logger.error(f"File not found: {e}")
+        print(f"Error: {e}")
+        import sys
+
+        sys.exit(1)
+    except Exception as e:
+        logger.error(f"Critical error during seed: {e}", exc_info=True)
+        print(f"Critical error: {e}")
+        import sys
+
+        sys.exit(1)
 
 
 if __name__ == "__main__":
     asyncio.run(main())
+
+
+# =============================================================================
+# Verification Queries
+# =============================================================================
+
+"""
+VERIFICATION QUERIES
+====================
+
+After running the seed script, use these SQL queries to verify the import:
+
+1. List all questionnaire types with question counts:
+```sql
+SELECT
+    qt.id,
+    qt.name,
+    qt.is_active,
+    COUNT(DISTINCT qg.id) as group_count,
+    COUNT(DISTINCT q.id) as question_count
+FROM questionnaire_types qt
+LEFT JOIN question_groups qg ON qt.id = qg.type_id
+LEFT JOIN questions q ON qg.id = q.group_id
+GROUP BY qt.id, qt.name, qt.is_active
+ORDER BY qt.name;
+```
+
+2. Show questions with their options and scores:
+```sql
+SELECT
+    qt.name as type_name,
+    qg.name as group_name,
+    q.text as question_text,
+    qo.option_type,
+    qo.score
+FROM questionnaire_types qt
+JOIN question_groups qg ON qt.id = qg.type_id
+JOIN questions q ON qg.id = q.group_id
+JOIN question_options qo ON q.id = qo.question_id
+ORDER BY qt.name, qg.name, q.display_order, qo.option_type;
+```
+
+3. Lookup by natural key (type_name, group_name, question_text):
+```sql
+SELECT
+    q.id,
+    q.text,
+    qo.option_type,
+    qo.score
+FROM questionnaire_types qt
+JOIN question_groups qg ON qt.id = qg.type_id AND qt.name = 'YOUR_TYPE_NAME'
+JOIN questions q ON qg.id = q.group_id AND q.text = 'YOUR_QUESTION_TEXT'
+JOIN question_options qo ON q.id = qo.question_id;
+```
+
+4. Verify inverse scoring (NO and YES scores should be opposite):
+```sql
+SELECT
+    qt.name as type_name,
+    qg.name as group_name,
+    q.text as question_text,
+    MAX(CASE WHEN qo.option_type = 'NO' THEN qo.score END) as no_score,
+    MAX(CASE WHEN qo.option_type = 'YES' THEN qo.score END) as yes_score,
+    CASE
+        WHEN MAX(CASE WHEN qo.option_type = 'NO' THEN qo.score END) = 1
+        AND MAX(CASE WHEN qo.option_type = 'YES' THEN qo.score END) = 0
+        THEN 'Inverse OK'
+        WHEN MAX(CASE WHEN qo.option_type = 'NO' THEN qo.score END) = 0
+        AND MAX(CASE WHEN qo.option_type = 'YES' THEN qo.score END) = 1
+        THEN 'Inverse OK'
+        WHEN MAX(CASE WHEN qo.option_type = 'NO' THEN qo.score END) = 0
+        AND MAX(CASE WHEN qo.option_type = 'YES' THEN qo.score END) = 0
+        THEN 'Both Zero OK'
+        ELSE 'CHECK: Both scores are 1!'
+    END as scoring_status
+FROM questionnaire_types qt
+JOIN question_groups qg ON qt.id = qg.type_id
+JOIN questions q ON qg.id = q.group_id
+JOIN question_options qo ON q.id = qo.question_id
+GROUP BY qt.id, qt.name, qg.id, qg.name, q.id, q.text
+ORDER BY scoring_status DESC, qt.name, qg.name, q.display_order;
+```
+
+5. Full hierarchy display:
+```sql
+SELECT
+    qt.name as type,
+    qg.name as group,
+    q.text as question,
+    STRING_AGG(
+        qo.option_type || '=' || qo.score,
+        ', ' ORDER BY qo.option_type
+    ) as scores
+FROM questionnaire_types qt
+JOIN question_groups qg ON qt.id = qg.type_id
+JOIN questions q ON qg.id = q.group_id
+JOIN question_options qo ON q.id = qo.question_id
+GROUP BY qt.id, qt.name, qg.id, qg.name, q.id, q.text
+ORDER BY qt.name, qg.display_order, q.display_order;
+```
+
+6. Count all entities:
+```sql
+SELECT
+    'questionnaire_types' as entity_type,
+    COUNT(*) as count
+FROM questionnaire_types
+UNION ALL
+SELECT 'question_groups', COUNT(*) FROM question_groups
+UNION ALL
+SELECT 'questions', COUNT(*) FROM questions
+UNION ALL
+SELECT 'question_options', COUNT(*) FROM question_options;
+```
+"""

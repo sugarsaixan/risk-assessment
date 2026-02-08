@@ -34,12 +34,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+ (backend), TypeScript 5.x (frontend): Follow standard conventions
 
 ## Recent Changes
+- 007-update-questions-seed: Added [if applicable, e.g., PostgreSQL, CoreData, files or N/A]
 - 006-risk-score-calculation: Added Python 3.11+ (backend), TypeScript 5.x (frontend) + FastAPI, SQLAlchemy 2.0 (async), Pydantic 2.x, asyncpg (backend); React 18, React Router v6, TailwindCSS (frontend)
 - 005-result-answers-display: Added TypeScript 5.x (frontend), Python 3.11+ (backend - minor change) + React 18, React Router, TailwindCSS (frontend); FastAPI (backend)
-- 004-hide-result-confirmation: Added Python 3.11+ (backend), TypeScript 5.x (frontend) + FastAPI, SQLAlchemy, Pydantic (backend); React 18, React Router v6, TailwindCSS (frontend)
-- 004-test-assessment-sms: Added Python 3.11+ (matches existing backend)
-- 003-odoo-respondent-sync: Added Python 3.11+ (backend only — no frontend changes) + FastAPI, SQLAlchemy 2.0 (async), Pydantic 2.x, asyncpg
-- 003-odoo-respondent-sync: Added Python 3.11+ (backend only — no frontend changes) + FastAPI, SQLAlchemy 2.0 (async), Pydantic 2.x, asyncpg
 
 
 <!-- MANUAL ADDITIONS START -->
