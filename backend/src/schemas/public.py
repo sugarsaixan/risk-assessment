@@ -4,7 +4,7 @@ from typing import Any, Optional
 
 from pydantic import BaseModel, Field
 
-from src.models.enums import RiskRating
+from src.models.enums import OptionType, RiskRating
 from src.schemas.answer import AnswerInput
 from src.schemas.draft import DraftResponse
 from src.schemas.submission_contact import SubmissionContactInput
@@ -78,6 +78,20 @@ class OverallResult(BaseModel):
     risk_rating: RiskRating = Field(..., description="Overall risk rating")
 
 
+class AnswerBreakdownItem(BaseModel):
+    """Schema for individual answer in breakdown."""
+
+    question_id: str = Field(..., description="Question ID")
+    question_text: str = Field(..., description="Question text")
+    type_id: str = Field(..., description="Questionnaire type ID")
+    type_name: str = Field(..., description="Questionnaire type name")
+    selected_option: OptionType = Field(..., description="YES or NO")
+    comment: str | None = Field(None, description="Optional comment")
+    score_awarded: int = Field(..., ge=0, description="Points received")
+    max_score: int = Field(..., ge=0, description="Maximum possible points")
+    attachment_count: int = Field(default=0, ge=0, description="Number of attachments")
+
+
 class SubmitResponse(BaseModel):
     """Schema for assessment submission response."""
 
@@ -87,6 +101,10 @@ class SubmitResponse(BaseModel):
         description="Per-type score results with nested group results",
     )
     overall_result: OverallResult = Field(..., description="Overall assessment result")
+    answer_breakdown: list[AnswerBreakdownItem] | None = Field(
+        None,
+        description="Individual answer details (only included when breakdown=true)",
+    )
 
 
 class AssessmentErrorResponse(BaseModel):

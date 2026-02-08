@@ -3,7 +3,7 @@
 from typing import Annotated
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, File, Form, HTTPException, Request, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile, status
 from fastapi.responses import JSONResponse, Response
 from slowapi import Limiter
 from slowapi.util import get_remote_address
@@ -21,6 +21,7 @@ from src.schemas.public import (
 )
 from src.services.assessment import AssessmentService
 from src.services.draft import DraftService
+from src.services.results import ResultsService
 from src.services.submission import SubmissionService
 from src.services.upload import UploadService
 
@@ -275,6 +276,120 @@ async def upload_attachment(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=str(e),
         )
+
+
+@router.get(
+    "/{token}/results",
+    response_model=SubmitResponse,
+    responses={
+        404: {"model": AssessmentErrorResponse, "description": "Assessment not found"},
+        400: {"model": AssessmentErrorResponse, "description": "Assessment not completed"},
+    },
+    summary="Get assessment results",
+)
+@limiter.limit(PUBLIC_RATE_LIMIT)
+async def get_public_results(
+    request: Request,
+    token: str,
+    session: Annotated[AsyncSession, Depends(get_session)],
+    breakdown: bool = Query(False, description="Include individual answer breakdown"),
+) -> SubmitResponse | JSONResponse:
+    """Get results for a completed assessment by token.
+
+    Only works for COMPLETED assessments. Returns the same format as the submit response.
+    """
+    # Get assessment by token
+    assessment_service = AssessmentService(session)
+    assessment = await assessment_service.get_by_token(token)
+
+    if assessment is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=AssessmentErrorResponse(
+                error="not_found",
+                message=ERROR_MESSAGES["not_found"],
+            ).model_dump(),
+        )
+
+    # Only allow access to completed assessments
+    if assessment.status.value != "COMPLETED":
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content=AssessmentErrorResponse(
+                error="not_completed",
+                message="Үнэлгээ дуусаагүй байна.",
+            ).model_dump(),
+        )
+
+    # Get results using ResultsService
+    results_service = ResultsService(session)
+    results = await results_service.get_results(assessment.id, include_breakdown=breakdown)
+
+    if results is None:
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content=AssessmentErrorResponse(
+                error="not_found",
+                message=ERROR_MESSAGES["not_found"],
+            ).model_dump(),
+        )
+
+    # Convert to SubmitResponse format (matching what submit endpoint returns)
+    from src.schemas.public import AnswerBreakdownItem, GroupResult, OverallResult, TypeResult
+
+    type_results = [
+        TypeResult(
+            type_id=str(ts.type_id),
+            type_name=ts.type_name,
+            raw_score=ts.raw_score,
+            max_score=ts.max_score,
+            percentage=ts.percentage,
+            risk_rating=ts.risk_rating,
+            groups=[
+                GroupResult(
+                    group_id=str(gs.group_id),
+                    group_name=gs.group_name,
+                    raw_score=gs.raw_score,
+                    max_score=gs.max_score,
+                    percentage=gs.percentage,
+                    risk_rating=gs.risk_rating,
+                )
+                for gs in ts.groups
+            ],
+        )
+        for ts in results.type_scores
+    ]
+
+    overall_result = OverallResult(
+        raw_score=results.overall_score.raw_score,
+        max_score=results.overall_score.max_score,
+        percentage=results.overall_score.percentage,
+        risk_rating=results.overall_score.risk_rating,
+    )
+
+    answer_breakdown = None
+    if results.answer_breakdown:
+        answer_breakdown = [
+            AnswerBreakdownItem(
+                question_id=str(ab.question_id),
+                question_text=ab.question_text,
+                type_id=str(ab.type_id),
+                type_name=ab.type_name,
+                selected_option=ab.selected_option,
+                comment=ab.comment,
+                score_awarded=ab.score_awarded,
+                max_score=ab.max_score,
+                attachment_count=ab.attachment_count,
+            )
+            for ab in results.answer_breakdown
+        ]
+
+    return SubmitResponse(
+        assessment_id=str(results.assessment_id),
+        type_results=type_results,
+        overall_result=overall_result,
+        answer_breakdown=answer_breakdown,
+    )
 
 
 @router.post(

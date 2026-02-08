@@ -2,12 +2,15 @@
  * Results page displaying type scores with group breakdown and overall score with risk ratings.
  */
 
+import { useEffect, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 
+import { AnswersSection } from "../components/AnswersSection";
 import { OverallScoreCard } from "../components/OverallScoreCard";
 import { TypeScoreCard } from "../components/TypeScoreCard";
 import { MN } from "../constants/mn";
 import { ThemeToggle } from "../hooks/useTheme";
+import { getAssessmentResults } from "../services/assessment";
 import type { SubmitResponse } from "../types/api";
 
 export function Results() {
@@ -15,17 +18,55 @@ export function Results() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  // Get results from navigation state
-  const results = location.state?.results as SubmitResponse | undefined;
+  // Get results from navigation state (if coming from submit)
+  const stateResults = location.state?.results as SubmitResponse | undefined;
 
-  // If no results in state, redirect to form
-  if (!results) {
-    // Could redirect to form, but for now show error
+  // State for fetched results
+  const [results, setResults] = useState<SubmitResponse | undefined>(stateResults);
+  const [isLoading, setIsLoading] = useState(!stateResults);
+  const [error, setError] = useState<string | null>(null);
+
+  // Fetch results if not available from state
+  useEffect(() => {
+    if (stateResults || !token) return;
+
+    async function fetchResults() {
+      setIsLoading(true);
+      setError(null);
+
+      const result = await getAssessmentResults(token!);
+
+      if (result.success) {
+        setResults(result.data);
+      } else {
+        setError(result.message);
+      }
+
+      setIsLoading(false);
+    }
+
+    fetchResults();
+  }, [token, stateResults]);
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-4">
+        <div className="surface-card p-8 text-center max-w-md">
+          <span className="spinner spinner-lg mx-auto mb-4" />
+          <p className="label-muted">Уншиж байна...</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || !results) {
     return (
       <div className="min-h-screen flex items-center justify-center px-4">
         <div className="surface-card p-8 text-center max-w-md">
           <p className="label-muted mb-4">
-            {MN.errors.notFound.message}
+            {error || MN.errors.notFound.message}
           </p>
           <button
             onClick={() => navigate(`/a/${token}`)}
@@ -141,6 +182,13 @@ export function Results() {
             </div>
           </div>
         </div>
+
+        {/* Answers Section */}
+        {results.answer_breakdown && results.answer_breakdown.length > 0 && (
+          <div className="mt-8">
+            <AnswersSection answers={results.answer_breakdown} />
+          </div>
+        )}
 
         {/* Print / Close note */}
         <div className="mt-8 text-center text-sm label-muted">
