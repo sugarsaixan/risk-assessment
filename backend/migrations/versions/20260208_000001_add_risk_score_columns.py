@@ -10,7 +10,7 @@ Adds nullable columns for the new hierarchical risk grading system:
 - insurance_decision: Overall insurance decision
 
 Revision ID: 20260208_000001
-Revises: 20260128_odoo
+Revises: 95973ab8748f
 Create Date: 2026-02-08
 """
 
@@ -21,7 +21,7 @@ from alembic import op
 
 # revision identifiers, used by Alembic.
 revision: str = "20260208_000001"
-down_revision: str | None = "20260128_odoo"
+down_revision: str | None = "95973ab8748f"
 branch_labels: str | Sequence[str] | None = None
 depends_on: str | Sequence[str] | None = None
 
