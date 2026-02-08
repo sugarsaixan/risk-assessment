@@ -8,6 +8,8 @@ Auto-generated from all feature plans. Last updated: 2026-01-21
 - PostgreSQL (primary), S3-compatible object storage (images) - inherited from 001 (002-submit-contact-workflow)
 - Python 3.11+ (backend only — no frontend changes) + FastAPI, SQLAlchemy 2.0 (async), Pydantic 2.x, asyncpg (003-odoo-respondent-sync)
 - PostgreSQL (existing, via asyncpg) (003-odoo-respondent-sync)
+- Python 3.11+ (matches existing backend) (004-test-assessment-sms)
+- N/A (standalone script, no database changes) (004-test-assessment-sms)
 
 - Python 3.11+ (backend), TypeScript 5.x (frontend) + FastAPI, SQLAlchemy, Pydantic (backend); React 18, React Router, TailwindCSS (frontend) (001-risk-assessment-survey)
 
@@ -27,9 +29,9 @@ cd src [ONLY COMMANDS FOR ACTIVE TECHNOLOGIES][ONLY COMMANDS FOR ACTIVE TECHNOLO
 Python 3.11+ (backend), TypeScript 5.x (frontend): Follow standard conventions
 
 ## Recent Changes
+- 004-test-assessment-sms: Added Python 3.11+ (matches existing backend)
 - 003-odoo-respondent-sync: Added Python 3.11+ (backend only — no frontend changes) + FastAPI, SQLAlchemy 2.0 (async), Pydantic 2.x, asyncpg
 - 003-odoo-respondent-sync: Added Python 3.11+ (backend only — no frontend changes) + FastAPI, SQLAlchemy 2.0 (async), Pydantic 2.x, asyncpg
-- 002-submit-contact-workflow: Added Python 3.11+ (backend), TypeScript 5.x (frontend) - inherited from 001 + FastAPI, SQLAlchemy, Pydantic (backend); React 18, React Router, TailwindCSS (frontend) - inherited from 001
 
 
 <!-- MANUAL ADDITIONS START -->
