@@ -1,0 +1,152 @@
+openapi: 3.0.0
+info:
+  title: Assessment Creation API
+  version: 1.0.0
+  description: External API contract for creating risk assessments
+
+servers:
+  - url: https://aisys.agula.mn
+    description: Production server
+
+paths:
+  /assessment/api/admin/assessments:
+    post:
+      summary: Create a new risk assessment
+      description: Creates a new assessment and returns a unique URL for respondents
+      operationId: createAssessment
+      security:
+        - ApiKeyAuth: []
+        - SessionAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAssessmentRequest'
+            examples:
+              default:
+                summary: Default assessment creation
+                value:
+                  respondent_id: "1a6f1659-9f6a-4553-bdf2-399ac193a2b3"
+                  selected_type_ids:
+                    - "16ed991d-5239-421d-a5f2-871e5cfabf3e"
+                    - "46288660-9e9e-42f6-8d25-5f1dbef0103a"
+                  expires_in_days: 30
+      responses:
+        '200':
+          description: Assessment created successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateAssessmentResponse'
+              examples:
+                success:
+                  summary: Successful assessment creation
+                  value:
+                    id: "20ebdd4c-a5ba-4616-a32c-d4739fe38ba2"
+                    url: "https://aisys.agula.mn/assessment/a/U_IQVLhUEaAGcewZahZDooSS8W7k9xTs5aYnVhVxUXM"
+                    expires_at: "2026-03-06T04:26:22.388579Z"
+        '400':
+          description: Bad request - invalid parameters
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '401':
+          description: Unauthorized - invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '429':
+          description: Too many requests - rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key for authentication
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: session_id
+      description: Session cookie for additional authentication
+
+  schemas:
+    CreateAssessmentRequest:
+      type: object
+      required:
+        - respondent_id
+        - selected_type_ids
+        - expires_in_days
+      properties:
+        respondent_id:
+          type: string
+          format: uuid
+          description: ID of the respondent who will take the assessment
+          example: "1a6f1659-9f6a-4553-bdf2-399ac193a2b3"
+        selected_type_ids:
+          type: array
+          minItems: 1
+          items:
+            type: string
+            format: uuid
+          description: List of assessment type IDs to include
+          example:
+            - "16ed991d-5239-421d-a5f2-871e5cfabf3e"
+            - "46288660-9e9e-42f6-8d25-5f1dbef0103a"
+        expires_in_days:
+          type: integer
+          minimum: 1
+          maximum: 365
+          description: Number of days until the assessment link expires
+          example: 30
+
+    CreateAssessmentResponse:
+      type: object
+      required:
+        - id
+        - url
+        - expires_at
+      properties:
+        id:
+          type: string
+          format: uuid
+          description: Unique identifier for the created assessment
+          example: "20ebdd4c-a5ba-4616-a32c-d4739fe38ba2"
+        url:
+          type: string
+          format: uri
+          description: Full URL where respondents can access the assessment
+          example: "https://aisys.agula.mn/assessment/a/U_IQVLhUEaAGcewZahZDooSS8W7k9xTs5aYnVhVxUXM"
+        expires_at:
+          type: string
+          format: date-time
+          description: ISO 8601 timestamp when the assessment link expires
+          example: "2026-03-06T04:26:22.388579Z"
+
+    ErrorResponse:
+      type: object
+      required:
+        - error
+      properties:
+        error:
+          type: string
+          description: Human-readable error message
+          example: "Invalid respondent_id format"
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
