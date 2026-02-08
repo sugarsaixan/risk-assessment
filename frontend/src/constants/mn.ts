@@ -57,6 +57,16 @@ export const MN = {
     completedAt: "Дуусгасан огноо",
   },
 
+  // Answers Section
+  answers: {
+    title: "Хариултууд",
+    show: "Хариултуудыг харах",
+    hide: "Хариултуудыг нуух",
+    attachments: "Хавсралт",
+    yes: "Тийм",
+    no: "Үгүй",
+  },
+
   // Risk Ratings (Mongolian labels)
   riskRating: {
     LOW: "Бага",

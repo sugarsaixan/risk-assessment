@@ -6,6 +6,7 @@ import { Routes, Route, Outlet } from "react-router-dom";
 
 import { AssessmentProvider } from "./contexts/AssessmentContext";
 import { AssessmentForm } from "./pages/AssessmentForm";
+import { ConfirmationPage } from "./pages/ConfirmationPage";
 import { ContactPage } from "./pages/ContactPage";
 import { ExpiredLink } from "./pages/ExpiredLink";
 import { NotFound } from "./pages/NotFound";
@@ -32,6 +33,7 @@ function App() {
         <Route path="/a/:token" element={<AssessmentLayout />}>
           <Route index element={<AssessmentForm />} />
           <Route path="contact" element={<ContactPage />} />
+          <Route path="confirmation" element={<ConfirmationPage />} />
           <Route path="results" element={<Results />} />
         </Route>
 
