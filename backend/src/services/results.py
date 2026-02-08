@@ -80,6 +80,10 @@ class ResultsService:
                     max_score=score.max_score,
                     percentage=float(score.percentage),
                     risk_rating=score.risk_rating,
+                    total_risk=score.risk_value,
+                    total_grade=score.risk_grade,
+                    risk_description=score.risk_description,
+                    insurance_decision=score.insurance_decision,
                 )
             elif score.group_id is not None:
                 # Group-level score
@@ -91,6 +95,8 @@ class ResultsService:
                     max_score=score.max_score,
                     percentage=float(score.percentage),
                     risk_rating=score.risk_rating,
+                    sum_score=score.raw_score,
+                    classification_label=score.classification_label,
                 )
                 type_id_str = group_info.get("type_id", str(score.type_id) if score.type_id else "")
                 if type_id_str not in group_scores_map:
@@ -107,6 +113,11 @@ class ResultsService:
                     percentage=float(score.percentage),
                     risk_rating=score.risk_rating,
                     groups=[],
+                    probability_score=float(score.probability_score) if score.probability_score is not None else None,
+                    consequence_score=float(score.consequence_score) if score.consequence_score is not None else None,
+                    risk_value=score.risk_value,
+                    risk_grade=score.risk_grade,
+                    risk_description=score.risk_description,
                 )
 
         # Attach group scores to their parent type scores

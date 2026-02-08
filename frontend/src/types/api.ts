@@ -232,6 +232,8 @@ export interface GroupResult {
   max_score: number;
   percentage: number;
   risk_rating: RiskRating;
+  sum_score?: number;
+  classification_label?: string;
 }
 
 export interface TypeResult {
@@ -242,6 +244,11 @@ export interface TypeResult {
   percentage: number;
   risk_rating: RiskRating;
   groups: GroupResult[];
+  probability_score?: number;
+  consequence_score?: number;
+  risk_value?: number;
+  risk_grade?: string;
+  risk_description?: string;
 }
 
 export interface OverallResult {
@@ -249,6 +256,10 @@ export interface OverallResult {
   max_score: number;
   percentage: number;
   risk_rating: RiskRating;
+  total_risk?: number;
+  total_grade?: string;
+  risk_description?: string;
+  insurance_decision?: string;
 }
 
 export interface SubmitResponse {

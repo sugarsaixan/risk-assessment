@@ -120,6 +120,10 @@ export function Results() {
             maxScore={overall_result.max_score}
             percentage={overall_result.percentage}
             riskRating={overall_result.risk_rating}
+            totalRisk={overall_result.total_risk}
+            totalGrade={overall_result.total_grade}
+            riskDescription={overall_result.risk_description}
+            insuranceDecision={overall_result.insurance_decision}
           />
         </div>
 
@@ -140,6 +144,11 @@ export function Results() {
                   percentage={result.percentage}
                   riskRating={result.risk_rating}
                   groups={result.groups}
+                  probabilityScore={result.probability_score}
+                  consequenceScore={result.consequence_score}
+                  riskValue={result.risk_value}
+                  riskGrade={result.risk_grade}
+                  riskDescription={result.risk_description}
                 />
               ))}
             </div>
@@ -154,32 +163,75 @@ export function Results() {
             </h3>
           </div>
           <div className="divide-y divide-[var(--border)] text-sm">
-            <div className="flex justify-between p-4">
-              <span className="label-muted">{MN.results.score}</span>
-              <span className="font-medium text-[var(--foreground)]">
-                {overall_result.raw_score} / {overall_result.max_score}
-              </span>
-            </div>
-            <div className="flex justify-between p-4">
-              <span className="label-muted">{MN.results.percentage}</span>
-              <span className="font-medium text-[var(--foreground)]">
-                {overall_result.percentage.toFixed(1)}%
-              </span>
-            </div>
-            <div className="flex justify-between p-4">
-              <span className="label-muted">{MN.results.riskLevel}</span>
-              <span
-                className={`font-medium ${
-                  overall_result.risk_rating === "LOW"
-                    ? "text-green-400"
-                    : overall_result.risk_rating === "MEDIUM"
-                    ? "text-amber-400"
-                    : "text-red-400"
-                }`}
-              >
-                {MN.riskRating[overall_result.risk_rating]}
-              </span>
-            </div>
+            {overall_result.total_grade != null ? (
+              <>
+                {/* New scoring display */}
+                <div className="flex justify-between p-4">
+                  <span className="label-muted">Нийт зэрэглэл</span>
+                  <span className="font-medium text-[var(--foreground)]">
+                    {overall_result.total_grade}
+                  </span>
+                </div>
+                <div className="flex justify-between p-4">
+                  <span className="label-muted">Нийт эрсдэл</span>
+                  <span className="font-medium text-[var(--foreground)]">
+                    {overall_result.total_risk}
+                  </span>
+                </div>
+                {overall_result.risk_description && (
+                  <div className="flex justify-between p-4">
+                    <span className="label-muted">Тайлбар</span>
+                    <span className="font-medium text-[var(--foreground)]">
+                      {overall_result.risk_description}
+                    </span>
+                  </div>
+                )}
+                {overall_result.insurance_decision && (
+                  <div className="flex justify-between p-4">
+                    <span className="label-muted">Даатгах эсэх</span>
+                    <span
+                      className={`font-medium ${
+                        overall_result.insurance_decision === "Даатгана"
+                          ? "text-green-400"
+                          : "text-red-400"
+                      }`}
+                    >
+                      {overall_result.insurance_decision}
+                    </span>
+                  </div>
+                )}
+              </>
+            ) : (
+              <>
+                {/* Legacy scoring display */}
+                <div className="flex justify-between p-4">
+                  <span className="label-muted">{MN.results.score}</span>
+                  <span className="font-medium text-[var(--foreground)]">
+                    {overall_result.raw_score} / {overall_result.max_score}
+                  </span>
+                </div>
+                <div className="flex justify-between p-4">
+                  <span className="label-muted">{MN.results.percentage}</span>
+                  <span className="font-medium text-[var(--foreground)]">
+                    {overall_result.percentage.toFixed(1)}%
+                  </span>
+                </div>
+                <div className="flex justify-between p-4">
+                  <span className="label-muted">{MN.results.riskLevel}</span>
+                  <span
+                    className={`font-medium ${
+                      overall_result.risk_rating === "LOW"
+                        ? "text-green-400"
+                        : overall_result.risk_rating === "MEDIUM"
+                        ? "text-amber-400"
+                        : "text-red-400"
+                    }`}
+                  >
+                    {MN.riskRating[overall_result.risk_rating]}
+                  </span>
+                </div>
+              </>
+            )}
           </div>
         </div>
 

@@ -345,6 +345,11 @@ async def get_public_results(
             max_score=ts.max_score,
             percentage=ts.percentage,
             risk_rating=ts.risk_rating,
+            probability_score=ts.probability_score,
+            consequence_score=ts.consequence_score,
+            risk_value=ts.risk_value,
+            risk_grade=ts.risk_grade,
+            risk_description=ts.risk_description,
             groups=[
                 GroupResult(
                     group_id=str(gs.group_id),
@@ -353,6 +358,8 @@ async def get_public_results(
                     max_score=gs.max_score,
                     percentage=gs.percentage,
                     risk_rating=gs.risk_rating,
+                    sum_score=gs.sum_score,
+                    classification_label=gs.classification_label,
                 )
                 for gs in ts.groups
             ],
@@ -365,6 +372,10 @@ async def get_public_results(
         max_score=results.overall_score.max_score,
         percentage=results.overall_score.percentage,
         risk_rating=results.overall_score.risk_rating,
+        total_risk=results.overall_score.total_risk,
+        total_grade=results.overall_score.total_grade,
+        risk_description=results.overall_score.risk_description,
+        insurance_decision=results.overall_score.insurance_decision,
     )
 
     answer_breakdown = None

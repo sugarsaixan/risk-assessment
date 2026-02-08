@@ -1,6 +1,7 @@
 """Service for calculating assessment scores with hierarchical structure."""
 
-from decimal import Decimal
+import statistics
+from decimal import ROUND_HALF_UP, Decimal
 from typing import Any
 from uuid import UUID
 
@@ -8,6 +9,89 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.models.assessment_score import AssessmentScore
 from src.models.enums import RiskRating
+
+# Grade lookup table: list of (max_value, grade, description) sorted ascending.
+# For a given risk_value, find the first entry where risk_value <= max_value.
+_GRADE_TABLE: list[tuple[int, str, str]] = [
+    (1, "AAA", "Эрсдэл маш бага"),
+    (3, "AA", "Эрсдэл бага"),
+    (4, "A", "Анхаарахгүй, эрсдэл бага"),
+    (5, "BBB", "Нийцэхүйц, эрсдэл доогуур"),
+    (6, "BB", "Авахуйц, эрсдэл доогуур"),
+    (9, "B", "Хянахуйц, эрсдэл доогуур"),
+    (11, "CCC", "Хянахуйц, эрсдэл дунд"),
+    (14, "CC", "Анхаарах, эрсдэл дунд"),
+    (15, "C", "Нэн анхаарах, эрсдэл дунд"),
+    (16, "DDD", "Ноцтой, эрсдэл дээгүүр"),
+    (20, "DD", "Нэн ноцтой, эрсдэл дээгүүр"),
+]
+
+# Classification mapping: sum_score -> (label, numeric_value)
+_CLASSIFICATION_MAP: dict[int, tuple[str, int]] = {
+    0: ("Хэвийн", 1),
+    1: ("Хянахуйц", 2),
+    2: ("Анхаарах", 3),
+    3: ("Ноцтой", 4),
+}
+
+
+def classify_group(sum_score: int) -> tuple[str, int]:
+    """Classify a group based on its sum score.
+
+    Args:
+        sum_score: Sum of score_awarded values for all questions in the group.
+
+    Returns:
+        Tuple of (classification_label, numeric_value).
+        0 -> ("Хэвийн", 1), 1 -> ("Хянахуйц", 2), 2 -> ("Анхаарах", 3),
+        3 -> ("Ноцтой", 4), >=4 -> ("Аюултай", 5).
+    """
+    if sum_score >= 4:
+        return ("Аюултай", 5)
+    return _CLASSIFICATION_MAP.get(sum_score, ("Аюултай", 5))
+
+
+def lookup_grade(risk_value: int) -> tuple[str, str]:
+    """Look up risk grade and description from a risk value.
+
+    Args:
+        risk_value: Integer risk value (typically 1-25).
+
+    Returns:
+        Tuple of (grade, description) in Mongolian.
+    """
+    for max_val, grade, description in _GRADE_TABLE:
+        if risk_value <= max_val:
+            return (grade, description)
+    return ("D", "Аюултай, эрсдэл өндөр")
+
+
+def safe_stdev(values: list[float]) -> float:
+    """Compute sample standard deviation, returning 0.0 for N <= 1.
+
+    Uses statistics.stdev (sample STDEV, N-1 divisor) matching Excel's STDEV().
+
+    Args:
+        values: List of numeric values.
+
+    Returns:
+        Sample standard deviation, or 0.0 if fewer than 2 values.
+    """
+    if len(values) <= 1:
+        return 0.0
+    return statistics.stdev(values)
+
+
+def round_half_up(value: float) -> int:
+    """Round a float to the nearest integer using round-half-up.
+
+    Args:
+        value: Float value to round.
+
+    Returns:
+        Integer rounded with half-up strategy (0.5 rounds to 1).
+    """
+    return int(Decimal(str(value)).quantize(Decimal("1"), rounding=ROUND_HALF_UP))
 
 
 class ScoringService:
@@ -89,6 +173,10 @@ class ScoringService:
             percentage, threshold_high, threshold_medium
         )
 
+        # Calculate sum_score and classification for new risk grading
+        sum_score = raw_score
+        classification_label, numeric_value = classify_group(sum_score)
+
         return {
             "group_id": group_data["id"],
             "group_name": group_data["name"],
@@ -97,6 +185,9 @@ class ScoringService:
             "percentage": round(percentage, 2),
             "risk_rating": risk_rating,
             "weight": group_data.get("weight", 1.0),
+            "sum_score": sum_score,
+            "classification_label": classification_label,
+            "numeric_value": numeric_value,
         }
 
     def calculate_type_score(
@@ -148,6 +239,25 @@ class ScoringService:
             type_percentage, threshold_high, threshold_medium
         )
 
+        # New risk grading: probability and consequence scores per type
+        group_sum_scores = [float(gs["sum_score"]) for gs in group_scores]
+        group_numeric_values = [float(gs["numeric_value"]) for gs in group_scores]
+
+        probability_score = (
+            statistics.mean(group_sum_scores) + 0.618 * safe_stdev(group_sum_scores)
+            if group_sum_scores
+            else 0.0
+        )
+        consequence_score = (
+            statistics.mean(group_numeric_values) + 0.618 * safe_stdev(group_numeric_values)
+            if group_numeric_values
+            else 0.0
+        )
+
+        # Per-type risk value and grade
+        type_risk_value = round_half_up(probability_score * consequence_score)
+        type_risk_grade, type_risk_description = lookup_grade(type_risk_value)
+
         return {
             "type_id": type_data["id"],
             "type_name": type_data["name"],
@@ -157,6 +267,11 @@ class ScoringService:
             "risk_rating": risk_rating,
             "weight": type_data.get("weight", 1.0),
             "groups": group_scores,
+            "probability_score": round(probability_score, 4),
+            "consequence_score": round(consequence_score, 4),
+            "risk_value": type_risk_value,
+            "risk_grade": type_risk_grade,
+            "risk_description": type_risk_description,
         }
 
     def calculate_overall_score(
@@ -189,11 +304,35 @@ class ScoringService:
         # Use default thresholds for overall rating
         risk_rating = self.calculate_risk_rating(overall_percentage, 80, 50)
 
+        # New risk grading: aggregate type risk values
+        type_risk_values = [
+            float(ts["risk_value"])
+            for ts in type_scores
+            if ts.get("risk_value") is not None
+        ]
+
+        total_risk: int | None = None
+        total_grade: str | None = None
+        risk_description: str | None = None
+        insurance_decision: str | None = None
+
+        if type_risk_values:
+            total_risk = round_half_up(
+                statistics.mean(type_risk_values)
+                + 0.618 * safe_stdev(type_risk_values)
+            )
+            total_grade, risk_description = lookup_grade(total_risk)
+            insurance_decision = "Даатгахгүй" if total_risk > 16 else "Даатгана"
+
         return {
             "raw_score": total_raw,
             "max_score": total_max,
             "percentage": round(overall_percentage, 2),
             "risk_rating": risk_rating,
+            "risk_value": total_risk,
+            "risk_grade": total_grade,
+            "risk_description": risk_description,
+            "insurance_decision": insurance_decision,
         }
 
     async def save_scores(
@@ -233,6 +372,7 @@ class ScoringService:
                     max_score=gs["max_score"],
                     percentage=Decimal(str(gs["percentage"])),
                     risk_rating=gs["risk_rating"],
+                    classification_label=gs.get("classification_label"),
                 )
                 self.session.add(group_score)
                 scores.append(group_score)
@@ -246,6 +386,11 @@ class ScoringService:
                 max_score=ts["max_score"],
                 percentage=Decimal(str(ts["percentage"])),
                 risk_rating=ts["risk_rating"],
+                probability_score=Decimal(str(ts["probability_score"])) if ts.get("probability_score") is not None else None,
+                consequence_score=Decimal(str(ts["consequence_score"])) if ts.get("consequence_score") is not None else None,
+                risk_value=ts.get("risk_value"),
+                risk_grade=ts.get("risk_grade"),
+                risk_description=ts.get("risk_description"),
             )
             self.session.add(type_score)
             scores.append(type_score)
@@ -259,6 +404,10 @@ class ScoringService:
             max_score=overall_score["max_score"],
             percentage=Decimal(str(overall_score["percentage"])),
             risk_rating=overall_score["risk_rating"],
+            risk_value=overall_score.get("risk_value"),
+            risk_grade=overall_score.get("risk_grade"),
+            risk_description=overall_score.get("risk_description"),
+            insurance_decision=overall_score.get("insurance_decision"),
         )
         self.session.add(overall)
         scores.append(overall)

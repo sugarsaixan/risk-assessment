@@ -17,6 +17,8 @@ class GroupScore(BaseModel):
     max_score: int = Field(..., ge=0, description="Maximum possible points")
     percentage: float = Field(..., ge=0, le=100, description="Score percentage")
     risk_rating: RiskRating = Field(..., description="Risk rating based on thresholds")
+    sum_score: int | None = Field(None, description="Group sum score for risk classification")
+    classification_label: str | None = Field(None, description="Mongolian classification label")
 
 
 class TypeScore(BaseModel):
@@ -32,6 +34,11 @@ class TypeScore(BaseModel):
         default_factory=list,
         description="Per-group score breakdown within this type",
     )
+    probability_score: float | None = Field(None, description="МАГАДЛАЛЫН ОНОО")
+    consequence_score: float | None = Field(None, description="ҮР ДАГАВРЫН ОНОО")
+    risk_value: int | None = Field(None, description="Type risk value (ЭРСДЭЛ)")
+    risk_grade: str | None = Field(None, description="Type risk grade (AAA-D)")
+    risk_description: str | None = Field(None, description="Mongolian risk description")
 
 
 class OverallScore(BaseModel):
@@ -41,6 +48,10 @@ class OverallScore(BaseModel):
     max_score: int = Field(..., ge=0, description="Maximum possible points")
     percentage: float = Field(..., ge=0, le=100, description="Score percentage")
     risk_rating: RiskRating = Field(..., description="Overall risk rating")
+    total_risk: int | None = Field(None, description="НИЙТ ЭРСДЭЛ")
+    total_grade: str | None = Field(None, description="НИЙТ ЗЭРЭГЛЭЛ (AAA-D)")
+    risk_description: str | None = Field(None, description="Mongolian risk description")
+    insurance_decision: str | None = Field(None, description="ДААТГАХ ЭСЭХ")
 
 
 class AnswerBreakdown(BaseModel):
