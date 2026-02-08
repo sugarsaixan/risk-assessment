@@ -22,6 +22,7 @@ RUN pip install --no-cache-dir --upgrade pip && \
 COPY src/ ./src/
 COPY migrations/ ./migrations/
 COPY alembic.ini ./
+COPY questions/ ./questions/
 
 # Set ownership
 RUN chown -R appuser:appuser /app

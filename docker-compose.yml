@@ -37,8 +37,8 @@ services:
         condition: service_healthy
     environment:
       DATABASE_URL: postgresql+asyncpg://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@risk-assessment-db:5432/${POSTGRES_DB:-risk_assessment}
-      PUBLIC_URL: ${PUBLIC_URL:-https://aisys.agula.mn/assessment}
-      CORS_ORIGINS: ${CORS_ORIGINS:-https://aisys.agula.mn}
+      PUBLIC_URL: ${PUBLIC_URL:-https://business.agula.mn/assessment}
+      CORS_ORIGINS: ${CORS_ORIGINS:-https://business.agula.mn}
     networks:
       production:
         aliases:
@@ -50,14 +50,14 @@ services:
 
       # API routes under /assessment/api/
       - "traefik.http.routers.risk-assessment-api-secure.entrypoints=websecure"
-      - "traefik.http.routers.risk-assessment-api-secure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment/api`)"
+      - "traefik.http.routers.risk-assessment-api-secure.rule=Host(`business.agula.mn`) && PathPrefix(`/assessment/api`)"
       - "traefik.http.routers.risk-assessment-api-secure.tls=true"
       - "traefik.http.routers.risk-assessment-api-secure.service=risk-assessment-api-secure"
       - "traefik.http.routers.risk-assessment-api-secure.middlewares=risk-assessment-api-strip"
       - "traefik.http.routers.risk-assessment-api-secure.priority=1000"
 
       - "traefik.http.routers.risk-assessment-api-insecure.entrypoints=web"
-      - "traefik.http.routers.risk-assessment-api-insecure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment/api`)"
+      - "traefik.http.routers.risk-assessment-api-insecure.rule=Host(`business.agula.mn`) && PathPrefix(`/assessment/api`)"
       - "traefik.http.routers.risk-assessment-api-insecure.middlewares=redirectSecure@file"
       - "traefik.http.routers.risk-assessment-api-insecure.priority=1000"
 
@@ -89,13 +89,13 @@ services:
 
       # Frontend routes under /assessment/
       - "traefik.http.routers.risk-assessment-frontend-secure.entrypoints=websecure"
-      - "traefik.http.routers.risk-assessment-frontend-secure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment/`)"
+      - "traefik.http.routers.risk-assessment-frontend-secure.rule=Host(`business.agula.mn`) && PathPrefix(`/assessment/`)"
       - "traefik.http.routers.risk-assessment-frontend-secure.tls=true"
       - "traefik.http.routers.risk-assessment-frontend-secure.service=risk-assessment-frontend-secure"
       - "traefik.http.routers.risk-assessment-frontend-secure.priority=900"
 
       - "traefik.http.routers.risk-assessment-frontend-insecure.entrypoints=web"
-      - "traefik.http.routers.risk-assessment-frontend-insecure.rule=Host(`aisys.agula.mn`) && PathPrefix(`/assessment/`)"
+      - "traefik.http.routers.risk-assessment-frontend-insecure.rule=Host(`business.agula.mn`) && PathPrefix(`/assessment/`)"
       - "traefik.http.routers.risk-assessment-frontend-insecure.priority=900"
       - "traefik.http.routers.risk-assessment-frontend-insecure.middlewares=redirectSecure@file"
 

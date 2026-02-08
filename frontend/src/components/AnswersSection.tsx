@@ -58,10 +58,11 @@ export function AnswersSection({ answers, className = "" }: AnswersSectionProps)
   // Group answers by type_name
   const grouped: Record<string, AnswerBreakdown[]> = {};
   for (const answer of answers) {
-    if (!grouped[answer.type_name]) {
-      grouped[answer.type_name] = [];
+    const typeName = answer.type_name;
+    if (!grouped[typeName]) {
+      grouped[typeName] = [];
     }
-    grouped[answer.type_name].push(answer);
+    grouped[typeName]!.push(answer);
   }
 
   return (

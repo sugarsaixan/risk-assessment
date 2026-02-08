@@ -339,3 +339,57 @@ Name: Test Key
 Key: f-_HjKM9Xo_TBNb5H3AuxwoP3FP1l34-j7vYPXkXyEM
 
 IMPORTANT: Save this key securely. It cannot be retrieved later.
+
+
+
+
+------
+
+
+  🐳 Docker Compose Commands                                                                                                                                                                                                                                            
+  
+  Step 1: Create Backup                                                                                                                                                                                                                                                 
+                                                                                   
+  # Using service name (preferred)
+  docker compose exec -T postgres pg_dump -U postgres risk_assessment -c -O -x | gzip > /tmp/risk_assessment_backup_$(date +%Y%m%d_%H%M%S).sql.gz
+
+  # Or using container name
+  docker exec risk-assessment-db pg_dump -U postgres risk_assessment -c -O -x | gzip > /tmp/risk_assessment_backup_$(date +%Y%m%d_%H%M%S).sql.gz
+
+  Note: The -T flag prevents pg_dump from trying to allocate a TTY, which is needed when piping to gzip.
+
+  Step 2: Clear All Data
+
+  # Using docker compose exec
+  docker compose exec postgres psql -U postgres risk_assessment << 'SQL'
+  DELETE FROM submission_contacts;
+  DELETE FROM assessment_drafts;
+  DELETE FROM assessments;
+  DELETE FROM respondents;
+  DELETE FROM question_options;
+  DELETE FROM questions;
+  DELETE FROM question_groups;
+  DELETE FROM questionnaire_types;
+  SQL
+
+  # Or pipe SQL file
+  cat << 'SQL' | docker compose exec -T postgres psql -U postgres risk_assessment
+  DELETE FROM submission_contacts;
+  DELETE FROM assessment_drafts;
+  DELETE FROM assessments;
+  DELETE FROM respondents;
+  DELETE FROM question_options;
+  DELETE FROM questions;
+  DELETE FROM question_groups;
+  DELETE FROM questionnaire_types;
+  SQL
+
+  Step 3: Restore from Backup
+
+  # Decompress and restore
+  gunzip -c /tmp/risk_assessment_backup_YYYYMMDD_HHMMSS.sql.gz | docker compose exec -T postgres psql -U postgres risk_assessment
+
+  Step 4: Re-seed Questions
+
+  docker compose exec api python -m src.seeds.questions_seed
+

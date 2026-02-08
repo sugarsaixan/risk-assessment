@@ -567,8 +567,13 @@ async def seed_questions(session: AsyncSession) -> SeedStats:
     """
     stats = SeedStats()
 
-    # Find questions folder
-    questions_dir = Path("/Users/user/Sources/projects/risk-assessment/questions")
+    # Find questions folder (relative to project root)
+    # When running in Docker, the questions folder is mounted at /app/questions
+    # When running locally, it's relative to the backend directory
+    questions_dir = Path("/app/questions")
+    if not questions_dir.exists():
+        # Fallback to local development path
+        questions_dir = Path(__file__).parent.parent.parent.parent / "questions"
     if not questions_dir.exists():
         raise FileNotFoundError(
             "questions/ folder does not exist. "
