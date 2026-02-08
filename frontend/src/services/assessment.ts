@@ -105,6 +105,58 @@ export async function uploadImage(
 }
 
 /**
+ * Get assessment results by token.
+ * Only works for completed assessments.
+ */
+export async function getAssessmentResults(
+  token: string,
+  includeBreakdown: boolean = true
+): Promise<AssessmentResult<SubmitResponse>> {
+  try {
+    const params = includeBreakdown ? '?breakdown=true' : '';
+    const response = await apiClient.get<SubmitResponse>(`/a/${token}/results${params}`);
+    return { success: true, data: response.data };
+  } catch (error: unknown) {
+    // Check for specific error responses
+    if (
+      error &&
+      typeof error === "object" &&
+      "response" in error &&
+      error.response &&
+      typeof error.response === "object" &&
+      "status" in error.response &&
+      "data" in error.response
+    ) {
+      const { status, data } = error.response as {
+        status: number;
+        data: AssessmentErrorResponse;
+      };
+
+      if (status === 404) {
+        return {
+          success: false,
+          error: "not_found",
+          message: data.message || "Assessment not found",
+        };
+      }
+      if (status === 400) {
+        return {
+          success: false,
+          error: "not_found",
+          message: data.message || "Assessment not completed",
+        };
+      }
+    }
+
+    return {
+      success: false,
+      error: "not_found",
+      message: getErrorMessage(error),
+    };
+  }
+}
+
+/**
  * Submit assessment answers.
  */
 export async function submitAssessment(

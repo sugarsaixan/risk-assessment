@@ -122,11 +122,8 @@ export function ContactPage() {
       // Clear context state after successful submission
       resetState();
 
-      // Navigate to results page with data
-      navigate(`/a/${token}/results`, {
-        state: { results: result.data },
-        replace: true,
-      });
+      // Navigate to confirmation page (results hidden from users)
+      navigate(`/a/${token}/confirmation`, { replace: true });
     } else {
       setSubmitError(result.message);
 

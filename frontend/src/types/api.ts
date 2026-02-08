@@ -255,6 +255,19 @@ export interface SubmitResponse {
   assessment_id: string;
   type_results: TypeResult[];
   overall_result: OverallResult;
+  answer_breakdown?: AnswerBreakdown[];
+}
+
+export interface AnswerBreakdown {
+  question_id: string;
+  question_text: string;
+  type_id: string;
+  type_name: string;
+  selected_option: OptionType;
+  comment: string | null;
+  score_awarded: number;
+  max_score: number;
+  attachment_count: number;
 }
 
 // ============================================================================
