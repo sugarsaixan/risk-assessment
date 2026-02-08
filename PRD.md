@@ -291,3 +291,24 @@ Fresh Database	"alembic upgrade head"	Runs all scripts; creates tables and the v
 Existing Database	"alembic stamp head"	Does not run scripts; simply tells Alembic the DB is already at the latest version.
 
 --- 
+
+
+odoo15
+
+(backend) sugarsaikhan:~/Sources/Projects/Risk-Assessment/backend$ python -m src.cli create-key "Test Key"
+2026-02-02 17:17:30,222 INFO sqlalchemy.engine.Engine select pg_catalog.version()
+2026-02-02 17:17:30,222 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-02-02 17:17:30,247 INFO sqlalchemy.engine.Engine select current_schema()
+2026-02-02 17:17:30,247 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-02-02 17:17:30,253 INFO sqlalchemy.engine.Engine show standard_conforming_strings
+2026-02-02 17:17:30,253 INFO sqlalchemy.engine.Engine [raw sql] ()
+2026-02-02 17:17:30,256 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2026-02-02 17:17:30,258 INFO sqlalchemy.engine.Engine INSERT INTO api_keys (key_hash, name, is_active, last_used_at, id) VALUES ($1::VARCHAR, $2::VARCHAR, $3::BOOLEAN, $4::TIMESTAMP WITH TIME ZONE, $5::UUID) RETURNING api_keys.created_at
+2026-02-02 17:17:30,258 INFO sqlalchemy.engine.Engine [generated in 0.00012s] ('$argon2id$v=19$m=65536,t=3,p=4$CsE4xzgn5JzTmlMqRaj1Pg$tx7nU+HKXF4qw0cBRMMZgggL5uie12h5i0BS3t108LA', 'Test Key', True, None, UUID('43f22568-0ee1-43cd-b6cf-17e09d9ff354'))
+2026-02-02 17:17:30,289 INFO sqlalchemy.engine.Engine COMMIT
+API Key created successfully!
+ID: 43f22568-0ee1-43cd-b6cf-17e09d9ff354
+Name: Test Key
+Key: f-_HjKM9Xo_TBNb5H3AuxwoP3FP1l34-j7vYPXkXyEM
+
+IMPORTANT: Save this key securely. It cannot be retrieved later.

@@ -1,0 +1,29 @@
+# Test Assessment SMS Distribution Tool Configuration Template
+#
+# Copy this file to config.yml and fill in your actual values
+# DO NOT commit config.yml to version control
+
+# Assessment API Configuration
+assessment_api:
+  base_url: "https://aisys.agula.mn"
+  api_key: "${ASSESSMENT_API_KEY}"
+  session_id: "${ASSESSMENT_SESSION_ID}"
+  respondent_id: "1a6f1659-9f6a-4553-bdf2-399ac193a2b3"
+  selected_type_ids:
+    - "16ed991d-5239-421d-a5f2-871e5cfabf3e"
+    - "46288660-9e9e-42f6-8d25-5f1dbef0103a"
+  expires_in_days: 30
+
+# SMS API Configuration
+sms_api:
+  base_url: "https://sms.agula.mn"
+  api_key: "${SMS_API_KEY}"
+
+# Message Template
+message_template: "Sain baina uu. Ersdeliiin unelgeenii asuulga bogloh holboos: {url}"
+
+# Processing Options
+processing:
+  max_concurrent: 10
+  retry_attempts: 2
+  retry_delay_seconds: 5

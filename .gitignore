@@ -84,4 +84,7 @@ logs/
 secrets/
 credentials.json
 
+# Scripts config (keep template, ignore actual config)
+backend/scripts/config.yml
+
 demo-ui/*

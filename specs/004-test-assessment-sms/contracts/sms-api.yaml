@@ -1,0 +1,167 @@
+openapi: 3.0.0
+info:
+  title: SMS Sending API
+  version: 1.0.0
+  description: External API contract for sending SMS messages
+
+servers:
+  - url: https://sms.agula.mn
+    description: Production server
+
+paths:
+  /api/v1/sms:
+    post:
+      summary: Send an SMS message
+      description: Sends an SMS message to a specified phone number
+      operationId: sendSMS
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendSMSRequest'
+            examples:
+              assessmentInvitation:
+                summary: Assessment invitation SMS
+                value:
+                  to: "89113840"
+                  message: "Sain baina uu. Ersdeliiin unelgeenii asuulga bogloh holboos: https://aisys.agula.mn/assessment/a/OBsKm6CiSlT--EmmnNjkVQei05anWDVT0Q9OM3JQ5_c"
+      responses:
+        '200':
+          description: SMS sent successfully
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendSMSResponse'
+              examples:
+                success:
+                  summary: Successful SMS send
+                  value:
+                    message: ""
+                    status: "SMS sent successfully"
+        '400':
+          description: Bad request - invalid phone number or message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                invalidNumber:
+                  summary: Invalid phone number
+                  value:
+                    message: "Invalid phone number format"
+                    status: "error"
+                invalidMessage:
+                  summary: Invalid message
+                  value:
+                    message: "Message cannot be empty"
+                    status: "error"
+        '401':
+          description: Unauthorized - invalid or missing API key
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                unauthorized:
+                  summary: Invalid API key
+                  value:
+                    message: "Invalid API key"
+                    status: "error"
+        '402':
+          description: Payment required - insufficient SMS credits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                insufficientCredits:
+                  summary: Insufficient credits
+                  value:
+                    message: "Insufficient SMS credits"
+                    status: "error"
+        '429':
+          description: Too many requests - rate limit exceeded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                rateLimit:
+                  summary: Rate limit exceeded
+                  value:
+                    message: "Rate limit exceeded. Please try again later."
+                    status: "error"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key for SMS service authentication
+
+  schemas:
+    SendSMSRequest:
+      type: object
+      required:
+        - to
+        - message
+      properties:
+        to:
+          type: string
+          minLength: 8
+          maxLength: 15
+          pattern: '^[0-9+]+$'
+          description: Phone number to send SMS to (Mongolian numbers: 8 digits starting with 8 or 9, optional +976 country code)
+          example: "89113840"
+        message:
+          type: string
+          minLength: 1
+          maxLength: 160
+          description: SMS message content (max 160 characters for standard SMS)
+          example: "Sain baina uu. Ersdeliiin unelgeenii asuulga bogloh holboos: https://aisys.agula.mn/assessment/a/OBsKm6CiSlT--EmmnNjkVQei05anWDVT0Q9OM3JQ5_c"
+
+    SendSMSResponse:
+      type: object
+      required:
+        - status
+      properties:
+        message:
+          type: string
+          description: Optional additional message from the API
+          example: ""
+        status:
+          type: string
+          description: Status of the SMS send operation
+          enum:
+            - "SMS sent successfully"
+            - "error"
+          example: "SMS sent successfully"
+
+    ErrorResponse:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          description: Error status
+          example: "error"
+        message:
+          type: string
+          description: Human-readable error message
+          example: "Invalid phone number format"
+        details:
+          type: object
+          description: Additional error details
+          additionalProperties: true
